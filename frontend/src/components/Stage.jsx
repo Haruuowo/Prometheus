@@ -30,7 +30,7 @@ export default function Stage({
       {/* Header Bar */}
       <div className="stage-tab-header" style={{ right: 14, justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="stage-tab">LUNA · AI</div>
+          <div className="stage-tab">ODYSSEUS // CORE</div>
           <button
             type="button"
             className="btn-ghost sm"

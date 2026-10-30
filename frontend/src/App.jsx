@@ -21,9 +21,10 @@ const MOODS = {
   surprised:  { color: '#38bdf8', label: 'surprised' },
 };
 
-const DEFAULT_PROMPT = `you are luna, a personal ai assistant and second-brain companion created by kai (inspired by odysseus / jarvis).
-you help kai think through ideas, search his second brain notes, manage tasks/calendar, and check emails.
-keep replies concise, witty, supportive, and conversational without roleplay asterisks.`;
+const DEFAULT_PROMPT = `You are Luna, the autonomous AI core of the Odysseus personal intelligence system, created for Kai.
+You are a sharp, witty, highly competent personal assistant and second-brain companion.
+You think through complex problems, organize and recall knowledge from Second Brain notes, triage incoming emails, manage schedule tasks, and execute instructions precisely.
+Keep responses concise, natural, direct, and conversational without roleplay asterisks or cringe tropes.`;
 
 export default function App() {
   // Navigation & Theme
@@ -47,7 +48,7 @@ export default function App() {
 
   // Chat & Brain Pipeline State
   const [messages, setMessages] = useState([
-    { id: 1, user: 'Luna', text: "Hey Kai! I'm online and ready. Ask me anything, search your Second Brain, or check your schedule.", platform: 'Luna' }
+    { id: 1, user: 'Luna', text: "Odysseus Core online. Second Brain memory and tools are synchronized. What are we executing today, Kai?", platform: 'Luna' }
   ]);
   const [stageMs, setStageMs] = useState({ chat: 1, route: 1, intent: 1, rag: 2, llm: 340 });
   const [traces, setTraces] = useState([

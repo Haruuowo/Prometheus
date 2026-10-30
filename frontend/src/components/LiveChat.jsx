@@ -53,8 +53,8 @@ export default function LiveChat({
               background: 'var(--nds-surface)'
             }}
           />
-          <div className="panel-title" style={{ fontSize: 13 }}>Luna AI Chat</div>
-          <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>Online</span>
+          <div className="panel-title" style={{ fontSize: 13 }}>ODYSSEUS // LUNA CHAT</div>
+          <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>ONLINE</span>
         </div>
         {onClearChat && (
           <button type="button" className="btn-ghost sm" onClick={onClearChat}>

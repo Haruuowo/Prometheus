@@ -1,8 +1,8 @@
 import React from 'react';
 
 const NAV_ITEMS = [
-  { id: 'home', label: 'Home' },
-  { id: 'chat', label: 'AI Chat' },
+  { id: 'home', label: 'Dashboard' },
+  { id: 'chat', label: 'Odysseus Chat' },
   { id: 'brain', label: 'Second Brain' },
   { id: 'jarvis', label: 'Tools & Schedule' },
   { id: 'persona', label: 'Settings' },
@@ -23,12 +23,12 @@ export default function Topbar({
     <header className="topbar">
       {/* Left Brand */}
       <div className="brand">
-        <div className="logo">L</div>
+        <div className="logo">Ω</div>
         <div>
           <div className="brand-name">
-            Luna <span style={{ opacity: 0.65 }}>· Personal AI</span>
+            ODYSSEUS <span style={{ opacity: 0.65 }}>// LUNA AI</span>
           </div>
-          <div className="brand-sub">Multi-Tool Assistant by Kai</div>
+          <div className="brand-sub">Autonomous Personal Intelligence System</div>
         </div>
       </div>
 

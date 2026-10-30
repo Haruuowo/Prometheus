@@ -4,6 +4,7 @@ import {
   getAuth, 
   signInWithPopup, 
   GoogleAuthProvider, 
+  GithubAuthProvider,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
@@ -38,6 +39,7 @@ let app = null;
 let auth = null;
 let db = null;
 let googleProvider = null;
+let githubProvider = null;
 
 if (isFirebaseConfigured) {
   try {
@@ -45,6 +47,9 @@ if (isFirebaseConfigured) {
     auth = getAuth(app);
     db = getFirestore(app);
     googleProvider = new GoogleAuthProvider();
+    githubProvider = new GithubAuthProvider();
+    githubProvider.addScope('read:user');
+    githubProvider.addScope('repo');
   } catch (err) {
     console.warn("Failed to initialize Firebase:", err);
   }
@@ -60,6 +65,9 @@ export {
   auth, 
   db, 
   googleProvider,
+  githubProvider,
+  GoogleAuthProvider,
+  GithubAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,

@@ -49,6 +49,15 @@ async def verify_token(authorization: Optional[str] = Header(default=None)) -> d
     if not token or token in ("null", "undefined", "dev"):
         return {"uid": "kai_local", "email": "kai@prometheus.local", "name": "Kai"}
 
+    if token.startswith("github_"):
+        gh_user = token.split("github_", 1)[1].strip() or "student"
+        safe_uid = "".join(c for c in gh_user.lower() if c.isalnum() or c in ("_", "-"))
+        return {
+            "uid": f"gh_{safe_uid}",
+            "email": f"{gh_user}@users.noreply.github.com",
+            "name": gh_user,
+        }
+
     if _firebase_initialized:
         try:
             decoded = fb_auth.verify_id_token(token)

@@ -3,6 +3,8 @@ import { initializeApp, getApps } from "firebase/app";
 import { 
   getAuth, 
   signInWithPopup, 
+  linkWithPopup,
+  linkWithCredential,
   GoogleAuthProvider, 
   GithubAuthProvider,
   signInWithEmailAndPassword, 
@@ -69,6 +71,8 @@ export {
   GoogleAuthProvider,
   GithubAuthProvider,
   signInWithPopup,
+  linkWithPopup,
+  linkWithCredential,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,

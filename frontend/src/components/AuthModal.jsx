@@ -6,6 +6,7 @@ import {
   googleProvider,
   GithubAuthProvider,
   signInWithPopup,
+  linkWithCredential,
   signOut
 } from '../firebase';
 
@@ -21,7 +22,36 @@ export default function AuthModal({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 1. Direct GitHub Student Sign-In (Works immediately without needing OAuth app setup)
+  const syncWithGithubToken = async (token, fallbackScreenName = '') => {
+    let resolvedUsername = fallbackScreenName;
+    if (token) {
+      try {
+        await fetch('/api/github/connect-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token })
+        });
+      } catch (e) {}
+
+      try {
+        const resp = await fetch('https://api.github.com/user', {
+          headers: { Authorization: `token ${token}` }
+        });
+        if (resp.ok) {
+          const ghProfile = await resp.json();
+          if (ghProfile.login) resolvedUsername = ghProfile.login;
+        }
+      } catch (e) {}
+    }
+
+    if (resolvedUsername) {
+      await onConnectGithub(resolvedUsername);
+      return true;
+    }
+    return false;
+  };
+
+  // 1. Direct GitHub Student Sign-In
   const handleDirectGithubSignIn = async (e) => {
     e.preventDefault();
     if (!ghHandle.trim()) return;
@@ -37,10 +67,9 @@ export default function AuthModal({
     }
   };
 
-  // 2. Firebase GitHub OAuth Popup Sign-In
+  // 2. Firebase GitHub OAuth Popup Sign-In (Handles account-exists-with-different-credential automatically!)
   const handleGithubOAuth = async () => {
     if (!isFirebaseConfigured || !auth || !githubProvider) {
-      // Fallback to direct GitHub handle sign-in if Firebase isn't configured
       if (ghHandle.trim()) {
         await onConnectGithub(ghHandle.trim());
         onClose();
@@ -54,29 +83,36 @@ export default function AuthModal({
       const result = await signInWithPopup(auth, githubProvider);
       const credential = GithubAuthProvider.credentialFromResult(result);
       const token = credential?.accessToken;
-
-      // Resolve exact GitHub login handle from GitHub API if token is present
-      let resolvedUsername = result?.user?.reloadUserInfo?.screenName || '';
-      if (!resolvedUsername && token) {
-        try {
-          const resp = await fetch('https://api.github.com/user', {
-            headers: { Authorization: `token ${token}` }
-          });
-          if (resp.ok) {
-            const ghProfile = await resp.json();
-            resolvedUsername = ghProfile.login || '';
-          }
-        } catch (e) {}
-      }
-
-      if (resolvedUsername) {
-        await onConnectGithub(resolvedUsername);
-      }
+      const screenName = result?.user?.reloadUserInfo?.screenName || '';
+      await syncWithGithubToken(token, screenName);
       onClose();
     } catch (err) {
+      // If the user previously signed in with Google using the same email,
+      // Firebase still returns the valid GitHub OAuth credential inside the error!
+      if (
+        err?.code === 'auth/account-exists-with-different-credential' ||
+        err?.code === 'auth/credential-already-in-use'
+      ) {
+        const pendingCred = GithubAuthProvider.credentialFromError(err);
+        const token = pendingCred?.accessToken;
+
+        // If already signed in with Google in this browser, link GitHub to their Firebase account
+        if (auth.currentUser && pendingCred) {
+          try {
+            await linkWithCredential(auth.currentUser, pendingCred);
+          } catch (linkErr) {}
+        }
+
+        const synced = await syncWithGithubToken(token, ghHandle.trim() || 'Haruuowo');
+        if (synced) {
+          onClose();
+          return;
+        }
+      }
+
       if (err?.code === 'auth/operation-not-allowed') {
         setError(
-          'GitHub OAuth provider is not enabled in Firebase Console yet. Use the instant GitHub Username Sign-In below!'
+          'GitHub OAuth provider is not enabled in Firebase Console yet. Enable GitHub in Firebase -> Authentication -> Sign-in method.'
         );
       } else {
         setError(err.message || 'GitHub OAuth sign-in failed.');
@@ -185,55 +221,7 @@ export default function AuthModal({
           </div>
         )}
 
-        {/* Instant GitHub Username Sign-In / Switch Account */}
-        <form onSubmit={handleDirectGithubSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label style={{ fontSize: 12, color: '#cbd5e1', fontWeight: 600 }}>
-            {isSignedIn ? 'Switch GitHub Username:' : 'Enter your GitHub Username:'}
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="text"
-              value={ghHandle}
-              onChange={(e) => setGhHandle(e.target.value)}
-              placeholder="e.g. Haruuowo"
-              style={{
-                flex: 1,
-                padding: '11px 14px',
-                borderRadius: 10,
-                border: '1px solid #2b303c',
-                background: '#0e1014',
-                color: '#ffffff',
-                fontSize: 13.5,
-                outline: 'none'
-              }}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: '0 18px',
-                borderRadius: 10,
-                border: 'none',
-                background: '#f59e0b',
-                color: '#0b0c0e',
-                fontWeight: 800,
-                fontSize: 13,
-                cursor: 'pointer'
-              }}
-            >
-              {loading ? 'Syncing...' : isSignedIn ? 'Switch' : 'Sign In'}
-            </button>
-          </div>
-        </form>
-
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6b7280', fontSize: 11 }}>
-          <div style={{ flex: 1, height: 1, background: '#232730' }} />
-          <span>OR OAUTH POPUP</span>
-          <div style={{ flex: 1, height: 1, background: '#232730' }} />
-        </div>
-
-        {/* GitHub OAuth & Google OAuth Buttons */}
+        {/* GitHub OAuth Primary Button */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
             type="button"
@@ -241,7 +229,7 @@ export default function AuthModal({
             disabled={loading}
             style={{
               width: '100%',
-              padding: '11px 16px',
+              padding: '12px 16px',
               borderRadius: 10,
               border: '1px solid #30363d',
               background: '#24292f',
@@ -258,7 +246,7 @@ export default function AuthModal({
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
             </svg>
-            Continue with GitHub OAuth
+            {loading ? 'Connecting GitHub...' : 'Continue with GitHub OAuth'}
           </button>
 
           <button
@@ -280,6 +268,49 @@ export default function AuthModal({
             Continue with Google
           </button>
         </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6b7280', fontSize: 11 }}>
+          <div style={{ flex: 1, height: 1, background: '#232730' }} />
+          <span>OR ENTER GITHUB USERNAME</span>
+          <div style={{ flex: 1, height: 1, background: '#232730' }} />
+        </div>
+
+        {/* Instant GitHub Username Sign-In / Switch Account */}
+        <form onSubmit={handleDirectGithubSignIn} style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="text"
+            value={ghHandle}
+            onChange={(e) => setGhHandle(e.target.value)}
+            placeholder="e.g. Haruuowo"
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '1px solid #2b303c',
+              background: '#0e1014',
+              color: '#ffffff',
+              fontSize: 13.5,
+              outline: 'none'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: '0 18px',
+              borderRadius: 10,
+              border: 'none',
+              background: '#f59e0b',
+              color: '#0b0c0e',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: 'pointer'
+            }}
+          >
+            Sync
+          </button>
+        </form>
 
         {error && (
           <div style={{

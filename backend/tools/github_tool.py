@@ -6,14 +6,20 @@ import re
 from typing import Dict, Any, List
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
+_RUNTIME_GITHUB_TOKEN = ""
+
+def set_runtime_github_token(token: str):
+    global _RUNTIME_GITHUB_TOKEN
+    _RUNTIME_GITHUB_TOKEN = (token or "").strip()
 
 def _get_headers() -> Dict[str, str]:
     headers = {
         "User-Agent": "Odysseus-CS-Student-Hub",
         "Accept": "application/vnd.github.v3+json"
     }
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+    active_token = _RUNTIME_GITHUB_TOKEN or GITHUB_TOKEN
+    if active_token:
+        headers["Authorization"] = f"token {active_token}"
     return headers
 
 

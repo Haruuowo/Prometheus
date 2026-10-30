@@ -477,6 +477,12 @@ async def api_github_overview(user: str = Query(default="Haruuowo"), year: str =
     return data
 
 
+@app.post("/api/github/connect-token")
+async def connect_github_token(req: TokenConnectRequest):
+    github_tool.set_runtime_github_token(req.access_token)
+    return {"ok": True, "message": "GitHub OAuth token connected"}
+
+
 @app.post("/memory/reset")
 @app.post("/api/memory/reset")
 async def memory_reset(user_info: dict = Depends(verify_token)):

@@ -27,7 +27,7 @@ from backend.brain.intent import detect_intent
 from backend.brain.memory import memory_store
 from backend.brain.llm import llm_engine
 from backend.voice.tts import synthesize_speech
-from backend.tools import gmail, calendar, notes, web_search, sandbox, smart_sort, music, connectors
+from backend.tools import gmail, calendar, notes, web_search, sandbox, smart_sort, music, connectors, github_tool
 
 app = FastAPI(title="Prometheus · Luna AI VTuber & Jarvis Backend", version="2.0.0")
 
@@ -174,6 +174,10 @@ async def process_prometheus_turn(
         elif intent_name == "notes.search_notes":
             hits = notes.search_notes(uid, params.get("query", ""))
             tool_context = "Second Brain matches: " + "; ".join([f"[{h['title']}] {h['content']}" for h in hits[:3]])
+        elif intent_name == "github.overview":
+            data = github_tool.get_user_overview("Haruuowo")
+            top_repos = ", ".join([f"{r['name']} ({r['language']}, {r['stars']} stars)" for r in data.get("repos", [])[:3]])
+            tool_context = f"GitHub user {data.get('username')}: {data.get('public_repos')} public repos. Latest: {top_repos}"
         elif intent_name == "web.search":
             hits = web_search.search_web(params.get("query", ""))
             tool_context = "Web search results (cited): " + "; ".join([f"[{h['title']}] ({h['url']}) {h['snippet']}" for h in hits])
@@ -387,6 +391,12 @@ async def disconnect_user_inbox(user_info: dict = Depends(verify_token)):
     uid = user_info.get("uid", "kai_local")
     gmail.disconnect_inbox(uid)
     return {"ok": True}
+
+
+@app.get("/api/github/overview")
+async def api_github_overview(user: str = Query(default="Haruuowo")):
+    data = github_tool.get_user_overview(user)
+    return data
 
 
 @app.post("/memory/reset")

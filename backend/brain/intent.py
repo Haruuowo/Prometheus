@@ -30,7 +30,11 @@ def detect_intent(text: str) -> Dict[str, Any]:
             "ms": ms,
         }
 
-    # 1. Web Search Tool
+    # 1. GitHub API Tool
+    if re.search(r"\b(github|repo|repos|repositories|commits?|pull requests?)\b", lower):
+        return _result("tool", "github.overview", {"query": raw}, "upbeat")
+
+    # 2. Web Search Tool
     if re.search(r"\b(search the web|web search|google|look up online|search online|search for)\b", lower):
         q = re.sub(r"^(?:please\s+)?(?:search the web for|web search for|google|look up online|search online for|search for)\s+", "", raw, flags=re.I).strip()
         return _result("tool", "web.search", {"query": q or raw}, "supportive")

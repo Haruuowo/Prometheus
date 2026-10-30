@@ -1,6 +1,17 @@
+import os
 import time
-import uuid
+import base64
+from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+CREDENTIALS_PATH = ROOT_DIR / "credentials.json"
+TOKEN_PATH = ROOT_DIR / "token.json"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.modify"
+]
 
 SAMPLE_EMAILS = [
     {
@@ -29,77 +40,97 @@ SAMPLE_EMAILS = [
     },
 ]
 
-# Starts completely empty — only populated if user explicitly asks Luna to send an email
-PENDING_APPROVALS: Dict[str, Dict[str, Any]] = {}
-SENT_EMAILS: List[Dict[str, Any]] = []
+def get_gmail_service():
+    """Returns an authenticated Gmail API service if credentials or token exist."""
+    try:
+        from google.oauth2.credentials import Credentials
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
 
+        creds = None
+        if TOKEN_PATH.exists():
+            creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                with open(TOKEN_PATH, "w") as token:
+                    token.write(creds.to_json())
+            elif CREDENTIALS_PATH.exists():
+                flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_PATH), SCOPES)
+                creds = flow.run_local_server(port=0)
+                with open(TOKEN_PATH, "w") as token:
+                    token.write(creds.to_json())
+
+        if creds:
+            return build("gmail", "v1", credentials=creds)
+    except Exception as e:
+        print(f"[Gmail API] Auth note: {e}")
+    return None
+
+def fetch_live_messages(max_results: int = 10) -> List[Dict[str, Any]]:
+    """Fetches real messages from user's Gmail if authenticated."""
+    service = get_gmail_service()
+    if not service:
+        return SAMPLE_EMAILS
+
+    try:
+        results = service.users().messages().list(userId="me", maxResults=max_results).execute()
+        messages = results.get("messages", [])
+        emails = []
+
+        for m in messages:
+            msg = service.users().messages().get(userId="me", id=m["id"], format="metadata").execute()
+            headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+            is_unread = "UNREAD" in msg.get("labelIds", [])
+
+            emails.append({
+                "id": m["id"],
+                "from": headers.get("from", "Unknown Sender"),
+                "subject": headers.get("subject", "(No Subject)"),
+                "snippet": msg.get("snippet", ""),
+                "date": headers.get("date", "Recent"),
+                "unread": is_unread
+            })
+
+        return emails if emails else SAMPLE_EMAILS
+    except Exception as e:
+        print(f"[Gmail API] Error fetching messages: {e}")
+        return SAMPLE_EMAILS
 
 def search_mail(query: str = "") -> List[Dict[str, Any]]:
-    """Read-only tool: search messages in the user's inbox."""
+    """Search messages in inbox (live Gmail or sample)."""
     q = (query or "").strip().lower()
+    emails = fetch_live_messages(max_results=15)
+
     if not q or q in ("all", "inbox", "recent", "unread"):
         if q == "unread":
-            return [m for m in SAMPLE_EMAILS if m.get("unread")]
-        return SAMPLE_EMAILS
+            return [m for m in emails if m.get("unread")]
+        return emails
 
     tokens = [t for t in q.split() if len(t) > 1]
     results = []
-    for mail in SAMPLE_EMAILS:
+    for mail in emails:
         haystack = f"{mail['from']} {mail['subject']} {mail['snippet']}".lower()
         if any(t in haystack for t in tokens):
             results.append(mail)
-    return results or SAMPLE_EMAILS[:2]
-
+    return results or emails[:3]
 
 def summarize_inbox() -> Dict[str, Any]:
-    """Read-only tool: summarize unread and priority emails."""
-    unread = [m for m in SAMPLE_EMAILS if m.get("unread")]
+    """Summarize unread messages."""
+    emails = fetch_live_messages(max_results=12)
+    unread = [m for m in emails if m.get("unread")]
     summary_lines = [
-        f"• From {m['from'].split('<')[0].strip()}: \"{m['subject']}\" — {m['snippet']}"
-        for m in unread
+        f"• From {m['from'].split('<')[0].strip()}: \"{m['subject']}\" — {m['snippet'][:90]}..."
+        for m in unread[:4]
     ]
     return {
-        "total_count": len(SAMPLE_EMAILS),
+        "total_count": len(emails),
         "unread_count": len(unread),
-        "highlights": summary_lines,
-        "emails": SAMPLE_EMAILS,
+        "highlights": summary_lines if summary_lines else ["All caught up. No unread messages."],
+        "emails": emails,
     }
-
-
-def draft_reply(to: str, subject: str, body: str) -> Dict[str, Any]:
-    """Stages an email action requiring confirmation via POST /tools/approve."""
-    action_id = f"act_{uuid.uuid4().hex[:8]}"
-    action = {
-        "action_id": action_id,
-        "tool": "gmail.send_email",
-        "status": "pending",
-        "created_at": time.strftime("%H:%M:%S"),
-        "summary": f"Send email to {to}: \"{subject}\"",
-        "payload": {
-            "to": to,
-            "subject": subject,
-            "body": body,
-        },
-    }
-    PENDING_APPROVALS[action_id] = action
-    return action
-
-
-def approve_action(action_id: str, approved: bool = True) -> Optional[Dict[str, Any]]:
-    """Confirms or cancels a staged write action."""
-    action = PENDING_APPROVALS.get(action_id)
-    if not action:
-        return None
-
-    if approved:
-        action["status"] = "approved"
-        action["executed_at"] = time.strftime("%H:%M:%S")
-        SENT_EMAILS.append(action["payload"])
-    else:
-        action["status"] = "rejected"
-
-    return action
-
 
 def get_pending_approvals() -> List[Dict[str, Any]]:
-    return [a for a in PENDING_APPROVALS.values() if a["status"] == "pending"]
+    return []

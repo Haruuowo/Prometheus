@@ -79,13 +79,9 @@ def get_gmail_service():
                 creds.refresh(Request())
                 with open(TOKEN_PATH, "w") as token:
                     token.write(creds.to_json())
-            elif CREDENTIALS_PATH.exists():
-                flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_PATH), SCOPES)
-                creds = flow.run_local_server(port=0)
-                with open(TOKEN_PATH, "w") as token:
-                    token.write(creds.to_json())
-
-        if creds:
+            # Do not block background worker with run_local_server if running as server
+            # Use auth_gmail.py for the desktop prompt flow
+        if creds and creds.valid:
             return build("gmail", "v1", credentials=creds)
     except Exception as e:
         pass

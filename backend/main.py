@@ -27,7 +27,7 @@ from backend.brain.intent import detect_intent
 from backend.brain.memory import memory_store
 from backend.brain.llm import llm_engine
 from backend.voice.tts import synthesize_speech
-from backend.tools import gmail, calendar, notes
+from backend.tools import gmail, calendar, notes, web_search, sandbox, smart_sort, music, connectors
 
 app = FastAPI(title="Prometheus · Luna AI VTuber & Jarvis Backend", version="2.0.0")
 
@@ -66,6 +66,21 @@ class TokenConnectRequest(BaseModel):
 class InboxConnectRequest(BaseModel):
     email: str
     app_password: str
+
+
+class SandboxRunRequest(BaseModel):
+    code: str
+    language: str = "python"
+
+
+class SmartSortRequest(BaseModel):
+    directory: str
+    dry_run: bool = True
+
+
+class MusicControlRequest(BaseModel):
+    action: str
+    target: str = ""
 
 
 class ToolApproveRequest(BaseModel):
@@ -159,6 +174,24 @@ async def process_prometheus_turn(
         elif intent_name == "notes.search_notes":
             hits = notes.search_notes(uid, params.get("query", ""))
             tool_context = "Second Brain matches: " + "; ".join([f"[{h['title']}] {h['content']}" for h in hits[:3]])
+        elif intent_name == "web.search":
+            hits = web_search.search_web(params.get("query", ""))
+            tool_context = "Web search results (cited): " + "; ".join([f"[{h['title']}] ({h['url']}) {h['snippet']}" for h in hits])
+        elif intent_name == "sandbox.execute":
+            res = sandbox.execute_code_snippet(params.get("code", ""), params.get("language", "python"))
+            tool_context = f"Executed code script in sandbox (status={'OK' if res['ok'] else 'Error'}, {res['duration_ms']}ms): {res['output']}"
+        elif intent_name == "smartsort.organize":
+            res = smart_sort.smart_sort_directory(params.get("directory", ""))
+            tool_context = f"SmartSort scanned {res.get('files_found', 0)} files in {res.get('directory')}. Categories: Images, Documents, Code, Audio, Archives."
+        elif intent_name == "music.control":
+            res = music.control_playback(params.get("action", "status"), params.get("target", ""))
+            tool_context = f"Music controller: {res.get('message')}"
+        elif intent_name == "connectors.notion":
+            pages = connectors.query_notion_pages(params.get("query", ""))
+            tool_context = "Notion database pages: " + ", ".join([f"{p['title']} ({p['workspace']})" for p in pages])
+        elif intent_name == "connectors.drive":
+            files = connectors.query_drive_files(params.get("query", ""))
+            tool_context = "Google Drive cloud files: " + ", ".join([f"{f['name']} ({f['type']})" for f in files])
     else:
         i_html = "intent -> <b>conversation</b>"
         await ws_manager.emit_trace("intent", ms=intent_info["ms"], detail=i_html, icon=">")
@@ -312,7 +345,33 @@ async def tools_pending(user_info: dict = Depends(verify_token)):
         "pending": gmail.get_pending_approvals(),
         "inbox": gmail.summarize_inbox(uid=uid),
         "events": calendar.list_events(),
+        "connectors": connectors.get_connectors_status(),
+        "music": music.SPOTIFY_STATE,
     }
+
+
+@app.post("/api/tools/web-search")
+async def api_web_search(q: str = Query(default="")):
+    results = web_search.search_web(q)
+    return {"query": q, "results": results}
+
+
+@app.post("/api/tools/sandbox")
+async def api_sandbox(req: SandboxRunRequest):
+    res = sandbox.execute_code_snippet(req.code, req.language)
+    return res
+
+
+@app.post("/api/tools/smart-sort")
+async def api_smart_sort(req: SmartSortRequest):
+    res = smart_sort.smart_sort_directory(req.directory, req.dry_run)
+    return res
+
+
+@app.post("/api/tools/music")
+async def api_music(req: MusicControlRequest):
+    res = music.control_playback(req.action, req.target)
+    return res
 
 
 @app.post("/api/inbox/connect")

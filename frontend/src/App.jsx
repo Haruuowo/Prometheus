@@ -648,6 +648,9 @@ export default function App() {
   const activeTool = TOOL_REGISTRY.find((t) => t.id === activeToolId);
   const ActiveToolComponent = activeTool?.component;
   const userDisplayName = user?.displayName || user?.email?.split('@')[0] || null;
+  const hourNow = new Date().getHours();
+  const timeGreeting = hourNow < 12 ? 'Good morning' : hourNow < 18 ? 'Good afternoon' : 'Good evening';
+  const displayHandle = githubData?.username || githubUsername || userDisplayName || 'Developer';
 
   return (
     <div className="odysseus-page">
@@ -741,7 +744,150 @@ export default function App() {
          ===================================================================== */}
       {activeTab === 'OVERVIEW' && (
         <>
-          {/* ── Top Summary Strip: Upcoming Deadlines + Notes Preview ── */}
+          {/* ── Section 1: Personal Greeting & GitHub Contributions Hub ── */}
+          <section className="github-hub">
+            <div className="github-hub-top">
+              <div className="github-profile-row">
+                {githubData?.avatar_url && (
+                  <img src={githubData.avatar_url} alt={displayHandle} className="github-avatar" />
+                )}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: 21, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                      {timeGreeting}, {displayHandle}
+                    </h2>
+                    <span
+                      style={{
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        background: 'rgba(245, 158, 11, 0.14)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        color: '#f59e0b'
+                      }}
+                    >
+                      @{displayHandle}
+                    </span>
+                    <a
+                      href={`https://github.com/${displayHandle}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: 11.5, color: '#38bdf8', textDecoration: 'none', fontFamily: 'JetBrains Mono, monospace' }}
+                    >
+                      GitHub Profile &rarr;
+                    </a>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
+                    Welcome back to your workspace — you have <b style={{ color: '#e5e7eb' }}>{contribTotal} contributions</b> {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`} and <b style={{ color: '#e5e7eb' }}>{upcomingDeadlines.length} upcoming {upcomingDeadlines.length === 1 ? 'deadline' : 'deadlines'}</b>.
+                  </div>
+                </div>
+              </div>
+
+              <div className="github-stats-row">
+                <div className="github-stat-pill">
+                  Repos: <b>{githubData?.public_repos ?? 0}</b>
+                </div>
+                <div className="github-stat-pill">
+                  Stars: <b>{githubData?.total_stars ?? 0}</b>
+                </div>
+                <div className="github-stat-pill">
+                  Followers: <b>{githubData?.followers ?? 0}</b>
+                </div>
+              </div>
+            </div>
+
+            {/* GitHub Contributions Heatmap */}
+            <div className="gh-contrib-wrapper">
+              <div>
+                <div className="gh-contrib-header">
+                  <span className="gh-contrib-title">
+                    {contribTotal} contributions {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`}
+                  </span>
+                  <span className="gh-contrib-settings">Contribution settings</span>
+                </div>
+
+                <div className="gh-contrib-box">
+                  <div className="gh-contrib-months">
+                    {monthLabels.map((m, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          position: 'absolute',
+                          left: `${32 + m.weekIndex * 14}px`
+                        }}
+                      >
+                        {m.label}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="gh-contrib-grid-row">
+                    <div className="gh-contrib-days-col">
+                      <span />
+                      <span>Mon</span>
+                      <span />
+                      <span>Wed</span>
+                      <span />
+                      <span>Fri</span>
+                      <span />
+                    </div>
+
+                    <div className="gh-contrib-weeks">
+                      {contribWeeks.map((week, wIdx) => (
+                        <div key={wIdx} className="gh-contrib-week-col">
+                          {week.map((day, dIdx) =>
+                            day ? (
+                              <div
+                                key={day.date}
+                                className={`gh-contrib-cell gh-level-${day.level || 0}`}
+                                title={`${day.date}: ${day.level > 0 ? `Level ${day.level} contributions` : 'No contributions'}`}
+                              />
+                            ) : (
+                              <div key={dIdx} style={{ width: 11, height: 11 }} />
+                            )
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="gh-contrib-footer">
+                    <span>Learn how we count contributions</span>
+                    <div className="gh-contrib-legend">
+                      <span style={{ marginRight: 2 }}>Less</span>
+                      <span className="gh-contrib-cell gh-level-0" />
+                      <span className="gh-contrib-cell gh-level-1" />
+                      <span className="gh-contrib-cell gh-level-2" />
+                      <span className="gh-contrib-cell gh-level-3" />
+                      <span className="gh-contrib-cell gh-level-4" />
+                      <span style={{ marginLeft: 2 }}>More</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="gh-years-col">
+                {[
+                  { id: 'last', label: '2026' },
+                  { id: '2025', label: '2025' },
+                  { id: '2024', label: '2024' }
+                ].map((yr) => (
+                  <button
+                    key={yr.id}
+                    type="button"
+                    className={`gh-year-btn ${contribYear === yr.id ? 'active' : ''}`}
+                    onClick={() => handleSelectYear(yr.id)}
+                  >
+                    {yr.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ── Section 2: Upcoming Deadlines + Notes Preview ── */}
           <section className="overview-summary-grid">
             {/* Left Card: Upcoming Deadlines Summary */}
             <div className="summary-card">
@@ -908,152 +1054,6 @@ export default function App() {
                 >
                   + New Note Page
                 </button>
-              </div>
-            </div>
-          </section>
-
-          {/* ── Section 2: GitHub Profile & Contribution Graph ── */}
-          <section className="github-hub">
-            <div className="github-hub-top">
-              <div className="github-profile-row">
-                {githubData?.avatar_url && (
-                  <img src={githubData.avatar_url} alt={githubUsername} className="github-avatar" />
-                )}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <b style={{ fontSize: 18, color: '#ffffff' }}>@{githubData?.username || githubUsername}</b>
-                    <a
-                      href={`https://github.com/${githubData?.username || githubUsername}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ fontSize: 11.5, color: '#f59e0b', textDecoration: 'none', fontFamily: 'JetBrains Mono, monospace' }}
-                    >
-                      GitHub Profile &rarr;
-                    </a>
-                  </div>
-                  <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 2 }}>
-                    {githubData?.bio || 'Computer Science Student • Active Repositories & Contribution Graph'}
-                  </div>
-                </div>
-              </div>
-
-              <div className="github-stats-row">
-                <div className="github-stat-pill">
-                  Repos: <b>{githubData?.public_repos ?? 0}</b>
-                </div>
-                <div className="github-stat-pill">
-                  Stars: <b>{githubData?.total_stars ?? 0}</b>
-                </div>
-                <div className="github-stat-pill">
-                  Followers: <b>{githubData?.followers ?? 0}</b>
-                </div>
-
-                <form
-                  className="github-connect-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    fetchGithubProfile(githubInput, contribYear);
-                  }}
-                >
-                  <input
-                    type="text"
-                    className="github-connect-input"
-                    value={githubInput}
-                    onChange={(e) => setGithubInput(e.target.value)}
-                    placeholder="GitHub username..."
-                  />
-                  <button type="submit" className="odysseus-pill-btn" disabled={githubLoading}>
-                    {githubLoading ? 'Syncing...' : 'Sync GitHub'}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* GitHub Contributions Heatmap */}
-            <div className="gh-contrib-wrapper">
-              <div>
-                <div className="gh-contrib-header">
-                  <span className="gh-contrib-title">
-                    {contribTotal} contributions {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`}
-                  </span>
-                  <span className="gh-contrib-settings">Contribution settings</span>
-                </div>
-
-                <div className="gh-contrib-box">
-                  <div className="gh-contrib-months">
-                    {monthLabels.map((m, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          position: 'absolute',
-                          left: `${32 + m.weekIndex * 14}px`
-                        }}
-                      >
-                        {m.label}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="gh-contrib-grid-row">
-                    <div className="gh-contrib-days-col">
-                      <span />
-                      <span>Mon</span>
-                      <span />
-                      <span>Wed</span>
-                      <span />
-                      <span>Fri</span>
-                      <span />
-                    </div>
-
-                    <div className="gh-contrib-weeks">
-                      {contribWeeks.map((week, wIdx) => (
-                        <div key={wIdx} className="gh-contrib-week-col">
-                          {week.map((day, dIdx) =>
-                            day ? (
-                              <div
-                                key={day.date}
-                                className={`gh-contrib-cell gh-level-${day.level || 0}`}
-                                title={`${day.date}: ${day.level > 0 ? `Level ${day.level} contributions` : 'No contributions'}`}
-                              />
-                            ) : (
-                              <div key={dIdx} style={{ width: 11, height: 11 }} />
-                            )
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="gh-contrib-footer">
-                    <span>Learn how we count contributions</span>
-                    <div className="gh-contrib-legend">
-                      <span style={{ marginRight: 2 }}>Less</span>
-                      <span className="gh-contrib-cell gh-level-0" />
-                      <span className="gh-contrib-cell gh-level-1" />
-                      <span className="gh-contrib-cell gh-level-2" />
-                      <span className="gh-contrib-cell gh-level-3" />
-                      <span className="gh-contrib-cell gh-level-4" />
-                      <span style={{ marginLeft: 2 }}>More</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="gh-years-col">
-                {[
-                  { id: 'last', label: '2026' },
-                  { id: '2025', label: '2025' },
-                  { id: '2024', label: '2024' }
-                ].map((yr) => (
-                  <button
-                    key={yr.id}
-                    type="button"
-                    className={`gh-year-btn ${contribYear === yr.id ? 'active' : ''}`}
-                    onClick={() => handleSelectYear(yr.id)}
-                  >
-                    {yr.label}
-                  </button>
-                ))}
               </div>
             </div>
           </section>

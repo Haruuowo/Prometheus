@@ -1774,125 +1774,43 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Right Column: Important Project Details, Commands & Links */}
+              {/* Right Column: Architecture & Scratchpad Notes */}
               <div className="project-panel-card">
-                <div>
-                  <span className="section-label">KEY REFERENCES</span>
-                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
-                    Important Project Info & Commands
-                  </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <span className="section-label">DOCUMENTATION & SCRATCHPAD</span>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
+                      Project Notes & Architecture
+                    </h3>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      className="calendar-nav-btn"
+                      onClick={() => syncProjectToSecondBrain(selectedProject.name, todos, notes)}
+                      style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
+                    >
+                      Save Notes
+                    </button>
+                    <button
+                      type="button"
+                      className="calendar-nav-btn"
+                      onClick={() => setActiveToolId('readme_builder')}
+                    >
+                      Generate README.md
+                    </button>
+                  </div>
                 </div>
 
-                <form onSubmit={handleAddImportantItem} style={{ display: 'grid', gridTemplateColumns: '150px 1fr auto', gap: 8 }}>
-                  <input
-                    type="text"
-                    className="notion-input"
-                    value={newImpLabel}
-                    onChange={(e) => setNewImpLabel(e.target.value)}
-                    placeholder="Label (e.g. Live URL)"
-                  />
-                  <input
-                    type="text"
-                    className="notion-input"
-                    value={newImpValue}
-                    onChange={(e) => setNewImpValue(e.target.value)}
-                    placeholder="Command, link, or key info..."
-                  />
-                  <button type="submit" className="notion-gold-btn">
-                    + Save
-                  </button>
-                </form>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
-                  {importantList.length === 0 ? (
-                    <div style={{ padding: 28, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
-                      Save important project details here (run commands, deployment URLs, API endpoints, or team links).
-                    </div>
-                  ) : (
-                    importantList.map((item) => (
-                      <div key={item.id} className="deadline-row">
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 10.5, fontFamily: 'JetBrains Mono, monospace', color: '#38bdf8', fontWeight: 700 }}>
-                            {item.label.toUpperCase()}
-                          </div>
-                          <div style={{
-                            fontSize: 13,
-                            color: '#f3f4f6',
-                            fontFamily: 'JetBrains Mono, monospace',
-                            marginTop: 3,
-                            wordBreak: 'break-all'
-                          }}>
-                            {item.value}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button
-                            type="button"
-                            className="calendar-nav-btn"
-                            onClick={() => navigator.clipboard?.writeText(item.value)}
-                            style={{ padding: '4px 8px', fontSize: 11 }}
-                          >
-                            Copy
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteImportantItem(selectedProject.name, item.id)}
-                            style={{
-                              padding: '4px 8px',
-                              border: 'none',
-                              background: 'transparent',
-                              color: '#6b7280',
-                              fontSize: 15,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <textarea
+                  className="notion-page-textarea"
+                  style={{ minHeight: 340 }}
+                  value={notes}
+                  onChange={(e) => handleChangeProjectNotes(selectedProject.name, e.target.value)}
+                  placeholder={`Write architecture notes, database schemas, API routes, or implementation plans for ${selectedProject.name}...`}
+                />
               </div>
-            </div>
-
-            {/* Bottom Full-Width Card: Architecture & Scratchpad Notes */}
-            <div className="project-panel-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <span className="section-label">DOCUMENTATION & SCRATCHPAD</span>
-                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
-                    Project Notes & Architecture
-                  </h3>
-                </div>
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    type="button"
-                    className="calendar-nav-btn"
-                    onClick={() => syncProjectToSecondBrain(selectedProject.name, todos, notes)}
-                    style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
-                  >
-                    Save Notes
-                  </button>
-                  <button
-                    type="button"
-                    className="calendar-nav-btn"
-                    onClick={() => setActiveToolId('readme_builder')}
-                  >
-                    Generate README.md
-                  </button>
-                </div>
-              </div>
-
-              <textarea
-                className="notion-page-textarea"
-                style={{ minHeight: 240 }}
-                value={notes}
-                onChange={(e) => handleChangeProjectNotes(selectedProject.name, e.target.value)}
-                placeholder={`Write architecture notes, database schemas, API routes, or implementation plans for ${selectedProject.name}...`}
-              />
             </div>
           </section>
         );

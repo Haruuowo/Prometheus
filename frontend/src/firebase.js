@@ -45,8 +45,6 @@ if (isFirebaseConfigured) {
     auth = getAuth(app);
     db = getFirestore(app);
     googleProvider = new GoogleAuthProvider();
-    googleProvider.addScope("https://www.googleapis.com/auth/gmail.readonly");
-    googleProvider.addScope("https://www.googleapis.com/auth/gmail.modify");
   } catch (err) {
     console.warn("Failed to initialize Firebase:", err);
   }

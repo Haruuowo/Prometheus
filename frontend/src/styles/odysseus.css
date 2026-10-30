@@ -237,77 +237,136 @@ button, input, textarea, select {
   margin-top: 2px;
 }
 
-/* Overview Quick Strip (2 Clean Summary Cards) */
-.overview-summary-grid {
+/* Canvas-Style Calendar with Red Dots & Agenda */
+.canvas-calendar-section {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 18px;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 22px;
 }
 
 @media (max-width: 920px) {
-  .overview-summary-grid {
+  .canvas-calendar-section {
     grid-template-columns: 1fr;
   }
 }
 
-.summary-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 20px 22px;
+.canvas-mini-cal {
+  background: #0e1014;
+  border: 1px solid #1e222b;
+  border-radius: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.summary-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 
-.summary-card-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
+.canvas-cal-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.summary-link-btn {
-  background: none;
-  border: none;
-  color: var(--accent-gold);
-  font-size: 12.5px;
+.canvas-cal-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.canvas-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
   font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
+  color: var(--text-muted);
+  padding-bottom: 2px;
+}
+
+.canvas-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 4px;
 }
 
-.summary-link-btn:hover {
-  text-decoration: underline;
-}
-
-.summary-list {
+.canvas-cal-day {
+  height: 40px;
+  border-radius: 9px;
+  background: #13161d;
+  border: 1px solid transparent;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.14s ease;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d1d5db;
 }
 
-.summary-item-row {
+.canvas-cal-day:hover {
+  background: #1a1f29;
+  border-color: #2f3747;
+  color: #ffffff;
+}
+
+.canvas-cal-day.muted {
+  opacity: 0.3;
+  background: transparent;
+}
+
+.canvas-cal-day.today {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 800;
+}
+
+.canvas-cal-day.selected {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  font-weight: 800;
+}
+
+.canvas-dots-row {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 6px;
+}
+
+.canvas-red-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.85);
+  display: inline-block;
+}
+
+.canvas-done-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+}
+
+.canvas-agenda-panel {
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #0e1014;
-  border: 1px solid #1e222b;
+  gap: 14px;
 }
 
 /* Dedicated Calendar View */

@@ -887,174 +887,234 @@ export default function App() {
             </div>
           </section>
 
-          {/* ── Section 2: Upcoming Deadlines + Notes Preview ── */}
-          <section className="overview-summary-grid">
-            {/* Left Card: Upcoming Deadlines Summary */}
-            <div className="summary-card">
-              <div>
-                <div className="summary-card-top">
-                  <div className="summary-card-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                    <span>Upcoming Deadlines</span>
-                    <span className="tab-count-pill">{upcomingDeadlines.length} active</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="summary-link-btn"
-                    onClick={() => setActiveTab('CALENDAR')}
-                  >
-                    Open Full Calendar &rarr;
+          {/* ── Section 2: Canvas-Style Calendar (with Red Dots) & Deadlines Agenda ── */}
+          <section className="canvas-calendar-section">
+            {/* Left: Canvas-Style Mini Monthly Calendar with Red Dots */}
+            <div className="canvas-mini-cal">
+              <div className="canvas-cal-header">
+                <span className="canvas-cal-title">
+                  {FULL_MONTH_NAMES[calMonth]} {calYear}
+                </span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button type="button" className="calendar-nav-btn" style={{ padding: '4px 8px' }} onClick={handlePrevMonth}>
+                    &larr;
+                  </button>
+                  <button type="button" className="calendar-nav-btn" style={{ padding: '4px 8px' }} onClick={handleJumpToday}>
+                    Today
+                  </button>
+                  <button type="button" className="calendar-nav-btn" style={{ padding: '4px 8px' }} onClick={handleNextMonth}>
+                    &rarr;
                   </button>
                 </div>
+              </div>
 
-                <div className="summary-list" style={{ marginTop: 14 }}>
-                  {upcomingDeadlines.slice(0, 3).map((dl) => {
-                    const rel = getRelativeDayLabel(dl.date, todayKey);
-                    return (
-                      <div key={dl.id} className="summary-item-row">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                          <input
-                            type="checkbox"
-                            checked={dl.done}
-                            onChange={() => handleToggleDeadline(dl.id)}
-                            style={{ width: 15, height: 15, accentColor: '#f59e0b', cursor: 'pointer' }}
-                          />
-                          <span className={`deadline-pill cat-${dl.category || 'LAB'}`}>
-                            {dl.category || 'LAB'}
-                          </span>
-                          <span style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: '#f3f4f6',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {dl.title}
-                          </span>
-                        </div>
-                        <span style={{
-                          fontFamily: 'JetBrains Mono, monospace',
-                          fontSize: 11,
-                          color: dl.date <= todayKey ? '#f43f5e' : '#9ca3af',
-                          flexShrink: 0
-                        }}>
-                          {dl.date} {rel ? `(${rel})` : ''}
-                        </span>
+              <div className="canvas-cal-weekdays">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+                  <span key={idx}>{d}</span>
+                ))}
+              </div>
+
+              <div className="canvas-cal-grid">
+                {calendarCells.map((cell) => {
+                  const dayEvents = deadlines.filter((d) => d.date === cell.dateKey);
+                  const activeEvents = dayEvents.filter((d) => !d.done);
+                  const doneEvents = dayEvents.filter((d) => d.done);
+                  const isToday = cell.dateKey === todayKey;
+                  const isSelected = cell.dateKey === selectedDate;
+
+                  return (
+                    <div
+                      key={cell.dateKey}
+                      className={`canvas-cal-day ${!cell.inCurrentMonth ? 'muted' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                      onClick={() => setSelectedDate(cell.dateKey)}
+                      title={
+                        dayEvents.length > 0
+                          ? `${cell.dateKey}: ${dayEvents.map((e) => e.title).join(', ')}`
+                          : cell.dateKey
+                      }
+                    >
+                      <span>{cell.dayNum}</span>
+                      <div className="canvas-dots-row">
+                        {activeEvents.slice(0, 3).map((ev) => (
+                          <span key={ev.id} className="canvas-red-dot" />
+                        ))}
+                        {activeEvents.length === 0 && doneEvents.length > 0 && (
+                          <span className="canvas-done-dot" />
+                        )}
                       </div>
-                    );
-                  })}
-                  {upcomingDeadlines.length === 0 && (
-                    <div style={{ padding: '14px 0', color: '#6b7280', fontSize: 13 }}>
-                      No upcoming deadlines. Open the Calendar tab to schedule labs, exams, or milestones.
                     </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4, borderTop: '1px solid #1a1e26', fontSize: 11, color: '#9ca3af', fontFamily: 'JetBrains Mono, monospace' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span className="canvas-red-dot" /> Due Date
+                </span>
+                <span>Selected: {selectedDate}</span>
+              </div>
+            </div>
+
+            {/* Right: Canvas-Style Deadlines & To-Do Agenda */}
+            <div className="canvas-agenda-panel">
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="canvas-red-dot" />
+                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#ffffff' }}>
+                      Upcoming Deadlines & To-Do
+                    </h3>
+                    <span className="tab-count-pill">{upcomingDeadlines.length} active</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {[
+                        { id: 'UPCOMING', label: 'All Upcoming' },
+                        { id: 'SELECTED_DATE', label: `On ${selectedDate.slice(5)}` },
+                        { id: 'DONE', label: 'Completed' }
+                      ].map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setDeadlineFilter(f.id)}
+                          style={{
+                            padding: '4px 9px',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontFamily: 'JetBrains Mono, monospace',
+                            border: '1px solid #262b36',
+                            background: deadlineFilter === f.id ? '#232834' : 'transparent',
+                            color: deadlineFilter === f.id ? '#ffffff' : '#9ca3af',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="calendar-nav-btn"
+                      onClick={() => setActiveTab('CALENDAR')}
+                      style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.35)' }}
+                    >
+                      Expand Calendar &rarr;
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, maxHeight: 210, overflowY: 'auto' }}>
+                  {filteredDeadlines.length === 0 ? (
+                    <div style={{ padding: '26px 12px', textAlign: 'center', color: '#6b7280', fontSize: 13, background: '#0e1014', borderRadius: 10, border: '1px solid #1e222b' }}>
+                      {deadlineFilter === 'SELECTED_DATE'
+                        ? `No deadlines scheduled on ${selectedDate}. Add one below to mark a red dot on ${selectedDate}!`
+                        : 'No upcoming deadlines. Click any date on the calendar on the left and add a deadline below.'}
+                    </div>
+                  ) : (
+                    filteredDeadlines.map((dl) => {
+                      const rel = getRelativeDayLabel(dl.date, todayKey);
+                      return (
+                        <div key={dl.id} className="deadline-row">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                            <div
+                              className={`todo-custom-check ${dl.done ? 'checked' : ''}`}
+                              onClick={() => handleToggleDeadline(dl.id)}
+                            >
+                              {dl.done && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+
+                            {!dl.done && <span className="canvas-red-dot" style={{ flexShrink: 0 }} />}
+
+                            <span className={`deadline-pill cat-${dl.category || 'LAB'}`} style={{ flexShrink: 0 }}>
+                              {dl.category || 'LAB'}
+                            </span>
+
+                            <span style={{
+                              fontSize: 13.5,
+                              fontWeight: 600,
+                              color: dl.done ? '#6b7280' : '#f3f4f6',
+                              textDecoration: dl.done ? 'line-through' : 'none',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {dl.title}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                            <span style={{
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fontSize: 11,
+                              color: dl.date <= todayKey && !dl.done ? '#ef4444' : '#9ca3af'
+                            }}>
+                              {dl.date} • {dl.time} {rel ? `(${rel})` : ''}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDeadline(dl.id)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#6b7280',
+                                fontSize: 15,
+                                cursor: 'pointer',
+                                padding: '0 4px'
+                              }}
+                              title="Remove deadline"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
 
+              {/* Quick Add Deadline to Selected Date */}
               <form
                 onSubmit={handleAddDeadline}
-                style={{ display: 'flex', gap: 8, paddingTop: 6, borderTop: '1px solid #1e222b' }}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 110px auto', gap: 8, paddingTop: 10, borderTop: '1px solid #1e222b' }}
               >
                 <input
                   type="text"
                   className="notion-input"
                   value={newDeadlineTitle}
                   onChange={(e) => setNewDeadlineTitle(e.target.value)}
-                  placeholder={`Quick add deadline for ${selectedDate}...`}
-                  style={{ padding: '8px 12px', fontSize: 12.5 }}
+                  placeholder={`Add assignment or exam due on ${selectedDate}...`}
+                  style={{ padding: '9px 12px', fontSize: 12.5 }}
                 />
-                <button type="submit" className="notion-gold-btn" style={{ padding: '8px 14px' }}>
-                  + Add
+                <select
+                  className="notion-input"
+                  value={newDeadlineCategory}
+                  onChange={(e) => setNewDeadlineCategory(e.target.value)}
+                  style={{ padding: '9px 10px', color: '#f59e0b', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', fontSize: 11.5 }}
+                >
+                  <option value="LAB">LAB / HW</option>
+                  <option value="EXAM">EXAM / QUIZ</option>
+                  <option value="PROJECT">PROJECT</option>
+                  <option value="HACKATHON">HACKATHON</option>
+                </select>
+                <input
+                  type="text"
+                  className="notion-input"
+                  value={newDeadlineTime}
+                  onChange={(e) => setNewDeadlineTime(e.target.value)}
+                  placeholder="11:59 PM"
+                  style={{ padding: '9px 10px', fontSize: 12 }}
+                />
+                <button type="submit" className="notion-gold-btn" style={{ padding: '9px 16px' }}>
+                  + Add to {selectedDate.slice(5)}
                 </button>
               </form>
-            </div>
-
-            {/* Right Card: Course & Project Notes Summary */}
-            <div className="summary-card">
-              <div>
-                <div className="summary-card-top">
-                  <div className="summary-card-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                    </svg>
-                    <span>Saved Pages & Course Notes</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="summary-link-btn"
-                    onClick={() => setActiveTab('NOTES')}
-                    style={{ color: '#38bdf8' }}
-                  >
-                    Open Notes Workspace &rarr;
-                  </button>
-                </div>
-
-                <div className="summary-list" style={{ marginTop: 14 }}>
-                  {notionPages.slice(0, 3).map((pg) => (
-                    <div
-                      key={pg.id}
-                      className="summary-item-row"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setActivePageId(pg.id);
-                        setActiveTab('NOTES');
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                        <span style={{
-                          fontFamily: 'JetBrains Mono, monospace',
-                          fontSize: 9.5,
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          background: 'rgba(56, 189, 248, 0.14)',
-                          color: '#38bdf8'
-                        }}>
-                          {pg.category || 'DOC'}
-                        </span>
-                        <span style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: '#f3f4f6',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {pg.title}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: 11.5, color: '#6b7280', flexShrink: 0 }}>
-                        Open &rarr;
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: '1px solid #1e222b' }}>
-                <span style={{ fontSize: 12, color: '#6b7280' }}>
-                  {notionPages.length} structured markdown documents
-                </span>
-                <button
-                  type="button"
-                  className="calendar-nav-btn"
-                  onClick={() => {
-                    handleCreateNotionPage();
-                    setActiveTab('NOTES');
-                  }}
-                >
-                  + New Note Page
-                </button>
-              </div>
             </div>
           </section>
 
@@ -1314,6 +1374,7 @@ export default function App() {
             <div className="calendar-grid">
               {calendarCells.map((cell) => {
                 const dayEvents = deadlines.filter((d) => d.date === cell.dateKey);
+                const hasActive = dayEvents.some((d) => !d.done);
                 const isToday = cell.dateKey === todayKey;
                 const isSelected = cell.dateKey === selectedDate;
 
@@ -1326,7 +1387,10 @@ export default function App() {
                     <div className="calendar-day-num">
                       <span>{cell.dayNum}</span>
                       {dayEvents.length > 0 && (
-                        <span style={{ fontSize: 9.5, color: '#9ca3af' }}>{dayEvents.length}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 9.5, color: '#9ca3af' }}>
+                          {hasActive ? <span className="canvas-red-dot" /> : <span className="canvas-done-dot" />}
+                          {dayEvents.length}
+                        </span>
                       )}
                     </div>
 

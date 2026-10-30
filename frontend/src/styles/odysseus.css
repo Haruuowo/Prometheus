@@ -1,4 +1,4 @@
-/* Odysseus Clean Single-Page & Tabbed CS Student Workspace Styles */
+/* Prometheus Clean Single-Page & Tabbed CS Student Workspace Styles */
 
 :root {
   --bg-main: #0b0c0e;
@@ -47,45 +47,65 @@ button, input, textarea, select {
 .odysseus-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 28px 24px 84px;
+  padding: 22px 24px 84px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 26px;
 }
 
-/* Top Header & Workspace View Bar */
+/* Top Unified Prometheus Navbar */
 .odysseus-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 18px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, #151821 0%, #111319 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .odysseus-brand {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
+}
+
+.prometheus-logo-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.06));
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.15);
+  flex-shrink: 0;
 }
 
 .odysseus-brand-top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .odysseus-tag {
   font-family: "JetBrains Mono", monospace;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-gold);
   background: var(--accent-gold-soft);
   border: 1px solid var(--border-gold);
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
 }
 
@@ -94,7 +114,7 @@ button, input, textarea, select {
   align-items: center;
   gap: 6px;
   font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-secondary);
 }
 
@@ -103,17 +123,19 @@ button, input, textarea, select {
   height: 7px;
   border-radius: 50%;
   background: var(--accent-green);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
 }
 
 .odysseus-title {
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: 0.02em;
   color: #ffffff;
+  line-height: 1.15;
 }
 
 .odysseus-subtitle {
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--text-secondary);
 }
 
@@ -1046,13 +1068,14 @@ button, input, textarea, select {
 
 /* GitHub Student Activity Dashboard */
 .github-hub {
-  background: var(--bg-card);
+  background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.08) 0%, transparent 45%), var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  padding: 22px;
+  border-radius: 18px;
+  padding: 24px 26px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.4);
 }
 
 .github-hub-top {
@@ -1060,73 +1083,77 @@ button, input, textarea, select {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 14px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #1f2430;
 }
 
 .github-profile-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .github-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
   border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.25);
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .github-stats-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(112px, 1fr));
   gap: 10px;
-  flex-wrap: wrap;
+}
+
+@media (max-width: 780px) {
+  .github-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+  }
 }
 
 .github-stat-pill {
-  padding: 6px 12px;
-  border-radius: 10px;
-  background: #0e1014;
-  border: 1px solid #232730;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #0e1015;
+  border: 1px solid #232732;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color 0.16s ease;
+}
+
+.github-stat-pill:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.github-stat-pill span {
   font-family: "JetBrains Mono", monospace;
-  font-size: 11.5px;
-  color: var(--text-secondary);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .github-stat-pill b {
+  font-size: 18px;
+  font-weight: 800;
   color: #ffffff;
-}
-
-.github-connect-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.github-connect-input {
-  padding: 7px 12px;
-  border-radius: 9px;
-  background: #0e1014;
-  border: 1px solid #2b303c;
-  color: #ffffff;
-  font-size: 12.5px;
-  width: 170px;
-  outline: none;
-}
-
-.github-connect-input:focus {
-  border-color: var(--accent-gold);
+  letter-spacing: -0.02em;
 }
 
 /* GitHub Contributions Calendar Heatmap */
 .gh-contrib-wrapper {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 115px;
-  gap: 18px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 16px;
+  align-items: stretch;
 }
 
 @media (max-width: 900px) {
@@ -1139,71 +1166,92 @@ button, input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .gh-contrib-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #e6edf3;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #f3f4f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .gh-contrib-settings {
-  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
   color: #7d8590;
 }
 
 .gh-contrib-box {
-  background: #0d1117;
-  border: 1px solid #21262d;
-  border-radius: 10px;
-  padding: 16px 18px 12px;
+  background: #0b0e14;
+  border: 1px solid #1e2430;
+  border-radius: 14px;
+  padding: 18px 20px 14px;
   overflow-x: auto;
 }
 
 .gh-contrib-months {
-  display: flex;
-  padding-left: 32px;
-  margin-bottom: 6px;
-  font-size: 11.5px;
-  color: #e6edf3;
   position: relative;
-  height: 16px;
+  height: 18px;
+  margin-left: 36px;
+  margin-bottom: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
 }
 
 .gh-contrib-grid-row {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 30px minmax(680px, 1fr);
   gap: 6px;
+  align-items: center;
 }
 
 .gh-contrib-days-col {
   display: grid;
-  grid-template-rows: repeat(7, 11px);
-  gap: 3px;
-  font-size: 11px;
-  color: #e6edf3;
-  padding-right: 4px;
-  line-height: 11px;
+  grid-template-rows: repeat(7, 13px);
+  gap: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: #6b7280;
+  line-height: 13px;
 }
 
 .gh-contrib-weeks {
-  display: flex;
-  gap: 3px;
+  display: grid;
+  grid-template-columns: repeat(53, minmax(10px, 1fr));
+  gap: 4px;
+  width: 100%;
 }
 
 .gh-contrib-week-col {
   display: grid;
-  grid-template-rows: repeat(7, 11px);
-  gap: 3px;
+  grid-template-rows: repeat(7, 13px);
+  gap: 4px;
 }
 
 .gh-contrib-cell {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
+  width: 100%;
+  height: 13px;
+  border-radius: 3px;
   outline: 1px solid rgba(255, 255, 255, 0.04);
   outline-offset: -1px;
+  transition: transform 0.12s ease;
+}
+
+.gh-contrib-cell:hover {
+  transform: scale(1.18);
+  z-index: 2;
+}
+
+.gh-contrib-legend .gh-contrib-cell {
+  width: 12px;
+  height: 12px;
 }
 
 .gh-level-0 { background-color: #161b22; }
@@ -1216,8 +1264,8 @@ button, input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
-  padding-left: 32px;
+  margin-top: 12px;
+  padding-left: 36px;
   font-size: 11.5px;
   color: #7d8590;
 }
@@ -1231,32 +1279,36 @@ button, input, textarea, select {
 .gh-years-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding-top: 30px;
 }
 
 .gh-year-btn {
   width: 100%;
-  text-align: left;
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #7d8590;
-  font-size: 12.5px;
-  font-weight: 500;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #1e2430;
+  background: #0e1117;
+  color: #9ca3af;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .gh-year-btn:hover {
-  background: #161b22;
-  color: #e6edf3;
+  background: #161b24;
+  border-color: #2e3646;
+  color: #ffffff;
 }
 
 .gh-year-btn.active {
-  background: #1f6feb;
-  color: #ffffff;
-  font-weight: 600;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.12);
 }
 
 /* Tool & Project Cards Grid Section (Clean 3-Column Odysseus Aesthetic) */

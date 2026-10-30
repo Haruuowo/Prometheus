@@ -14,7 +14,7 @@ def set_runtime_github_token(token: str):
 
 def _get_headers() -> Dict[str, str]:
     headers = {
-        "User-Agent": "Odysseus-CS-Student-Hub",
+        "User-Agent": "Prometheus-CS-Student-Hub",
         "Accept": "application/vnd.github.v3+json"
     }
     active_token = _RUNTIME_GITHUB_TOKEN or GITHUB_TOKEN
@@ -59,7 +59,7 @@ def get_user_contributions(username: str = "Haruuowo", year: str = "last") -> Di
     try:
         y_param = urllib.parse.quote(str(year or "last"))
         url = f"https://github-contributions-api.jogruber.de/v4/{urllib.parse.quote(username)}?y={y_param}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Odysseus-CS-Student-Hub"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Prometheus-CS-Student-Hub"})
         with urllib.request.urlopen(req, timeout=4.5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             totals = data.get("total", {})
@@ -186,7 +186,7 @@ def get_user_overview(username: str = "Haruuowo", year: str = "last") -> Dict[st
             "followers": user_data.get("followers", 0),
             "following": user_data.get("following", 0),
             "total_stars": total_stars,
-            "bio": user_data.get("bio") or "Computer Science Student • Building with Odysseus",
+            "bio": user_data.get("bio") or "Computer Science Student • Building with Prometheus",
             "top_languages": top_languages,
             "repos": repos[:8],
             "events": events[:6],
@@ -215,7 +215,7 @@ def get_user_overview(username: str = "Haruuowo", year: str = "last") -> Dict[st
                     "id": "repo_1",
                     "name": "Prometheus",
                     "full_name": f"{username}/Prometheus",
-                    "description": "Odysseus CS Student AI Workspace with Luna, GitHub telemetry & Dev Tools",
+                    "description": "Prometheus CS Student Workspace with GitHub telemetry, calendar & dev tools",
                     "stars": 3,
                     "forks": 1,
                     "language": "JavaScript",
@@ -243,7 +243,7 @@ def get_user_overview(username: str = "Haruuowo", year: str = "last") -> Dict[st
                     "id": "ev_1",
                     "badge": "PUSH",
                     "repo": f"{username}/Prometheus",
-                    "text": f"Pushed to {username}/Prometheus: “Transform Odysseus into CS Student Workspace”",
+                    "text": f"Pushed to {username}/Prometheus: “Update Prometheus CS Student Workspace”",
                     "date": "Today"
                 }
             ],

@@ -216,7 +216,7 @@ export default function App() {
         id: 'pg_2',
         title: 'SWE Internship & Portfolio Checklist',
         category: 'CAREER',
-        content: `# SWE Internship Tracker\n\n## Portfolio Highlights\n1. Prometheus / Odysseus: CS Student Productivity & GitHub Workspace\n2. Clean README.md with architecture diagrams & live demo links\n3. Practice 2 DSA flashcards + 1 Big-O analysis daily`
+        content: `# SWE Internship Tracker\n\n## Portfolio Highlights\n1. Prometheus: CS Student Productivity & GitHub Workspace\n2. Clean README.md with architecture diagrams & live demo links\n3. Practice 2 DSA flashcards + 1 Big-O analysis daily`
       },
       {
         id: 'pg_3',
@@ -262,7 +262,7 @@ export default function App() {
           { id: 'imp_2', label: 'Backend API Command', value: 'python backend/main.py' },
           { id: 'imp_3', label: 'Deployment Target', value: 'Vercel (Frontend) + Render (FastAPI)' }
         ],
-        notes: 'Main Odysseus CS Student Workspace.\n\nArchitecture:\n- Frontend: React + Vite (port 5173)\n- Backend: FastAPI (port 8085)\n- Auth: GitHub OAuth & Username Sync'
+        notes: 'Main Prometheus CS Student Workspace.\n\nArchitecture:\n- Frontend: React + Vite (port 5173)\n- Backend: FastAPI (port 8085)\n- Auth: GitHub OAuth & Username Sync'
       }
     };
   });
@@ -654,20 +654,23 @@ export default function App() {
 
   return (
     <div className="odysseus-page">
-      {/* ── Top Header & Workspace View Switcher ── */}
+      {/* ── Top Unified Prometheus Workspace Bar ── */}
       <header className="odysseus-header">
         <div className="odysseus-brand">
-          <div className="odysseus-brand-top">
-            <span className="odysseus-tag">ODYSSEUS // CS WORKSPACE</span>
-            <span className="odysseus-status">
-              <span className="odysseus-status-dot" />
-              GITHUB SYNCED
-            </span>
+          <div className="prometheus-logo-mark">P</div>
+          <div>
+            <div className="odysseus-brand-top">
+              <span className="odysseus-title">PROMETHEUS</span>
+              <span className="odysseus-tag">CS WORKSPACE</span>
+              <span className="odysseus-status">
+                <span className="odysseus-status-dot" />
+                GITHUB CONNECTED
+              </span>
+            </div>
+            <p className="odysseus-subtitle">
+              Repositories, project task boards, deadline calendar, and engineering tools
+            </p>
           </div>
-          <h1 className="odysseus-title">Computer Science Workspace</h1>
-          <p className="odysseus-subtitle">
-            Manage your repositories, project tasks, deadline calendar, and engineering tools in one place.
-          </p>
         </div>
 
         <div className="workspace-nav-bar">
@@ -753,9 +756,21 @@ export default function App() {
                 )}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <h2 style={{ fontSize: 21, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
-                      {timeGreeting}, {displayHandle}
-                    </h2>
+                    <span
+                      style={{
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        color: '#10b981',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.35)',
+                        padding: '2px 8px',
+                        borderRadius: 999
+                      }}
+                    >
+                      PROMETHEUS DEVELOPER HUB
+                    </span>
                     <span
                       style={{
                         fontFamily: 'JetBrains Mono, monospace',
@@ -776,24 +791,34 @@ export default function App() {
                       rel="noreferrer"
                       style={{ fontSize: 11.5, color: '#38bdf8', textDecoration: 'none', fontFamily: 'JetBrains Mono, monospace' }}
                     >
-                      GitHub Profile &rarr;
+                      View GitHub &rarr;
                     </a>
                   </div>
-                  <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
-                    Welcome back to your workspace — you have <b style={{ color: '#e5e7eb' }}>{contribTotal} contributions</b> {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`} and <b style={{ color: '#e5e7eb' }}>{upcomingDeadlines.length} upcoming {upcomingDeadlines.length === 1 ? 'deadline' : 'deadlines'}</b>.
+                  <h2 style={{ fontSize: 24, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', marginTop: 6 }}>
+                    {timeGreeting}, {displayHandle}
+                  </h2>
+                  <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 3 }}>
+                    Welcome back to Prometheus — <b style={{ color: '#e5e7eb' }}>{contribTotal} contributions</b> logged {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`} and <b style={{ color: '#e5e7eb' }}>{upcomingDeadlines.length} upcoming {upcomingDeadlines.length === 1 ? 'deadline' : 'deadlines'}</b> on your calendar.
                   </div>
                 </div>
               </div>
 
               <div className="github-stats-row">
                 <div className="github-stat-pill">
-                  Repos: <b>{githubData?.public_repos ?? 0}</b>
+                  <span>CONTRIBUTIONS</span>
+                  <b style={{ color: '#10b981' }}>{contribTotal}</b>
                 </div>
                 <div className="github-stat-pill">
-                  Stars: <b>{githubData?.total_stars ?? 0}</b>
+                  <span>REPOSITORIES</span>
+                  <b>{githubData?.public_repos ?? 0}</b>
                 </div>
                 <div className="github-stat-pill">
-                  Followers: <b>{githubData?.followers ?? 0}</b>
+                  <span>TOTAL STARS</span>
+                  <b style={{ color: '#f59e0b' }}>{githubData?.total_stars ?? 0}</b>
+                </div>
+                <div className="github-stat-pill">
+                  <span>FOLLOWERS</span>
+                  <b style={{ color: '#38bdf8' }}>{githubData?.followers ?? 0}</b>
                 </div>
               </div>
             </div>
@@ -803,9 +828,12 @@ export default function App() {
               <div>
                 <div className="gh-contrib-header">
                   <span className="gh-contrib-title">
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: '#39d353', display: 'inline-block' }} />
                     {contribTotal} contributions {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`}
                   </span>
-                  <span className="gh-contrib-settings">Contribution settings</span>
+                  <span className="gh-contrib-settings">
+                    LIVE GITHUB ACTIVITY MATRIX // @{displayHandle.toUpperCase()}
+                  </span>
                 </div>
 
                 <div className="gh-contrib-box">
@@ -815,7 +843,7 @@ export default function App() {
                         key={i}
                         style={{
                           position: 'absolute',
-                          left: `${32 + m.weekIndex * 14}px`
+                          left: `${(m.weekIndex / Math.max(contribWeeks.length, 52)) * 100}%`
                         }}
                       >
                         {m.label}
@@ -845,7 +873,7 @@ export default function App() {
                                 title={`${day.date}: ${day.level > 0 ? `Level ${day.level} contributions` : 'No contributions'}`}
                               />
                             ) : (
-                              <div key={dIdx} style={{ width: 11, height: 11 }} />
+                              <div key={dIdx} style={{ width: '100%', height: 13 }} />
                             )
                           )}
                         </div>
@@ -854,7 +882,7 @@ export default function App() {
                   </div>
 
                   <div className="gh-contrib-footer">
-                    <span>Learn how we count contributions</span>
+                    <span>Synced directly from github.com/{displayHandle}</span>
                     <div className="gh-contrib-legend">
                       <span style={{ marginRight: 2 }}>Less</span>
                       <span className="gh-contrib-cell gh-level-0" />

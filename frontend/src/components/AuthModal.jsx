@@ -153,7 +153,7 @@ export default function AuthModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10.5, color: '#f59e0b', fontWeight: 800 }}>
-              ODYSSEUS // GITHUB AUTH
+              PROMETHEUS // GITHUB AUTH
             </span>
             <h2 style={{ fontSize: 21, fontWeight: 800, color: '#ffffff', marginTop: 4 }}>
               {isSignedIn ? 'Connected GitHub Account' : 'Sign in with GitHub'}

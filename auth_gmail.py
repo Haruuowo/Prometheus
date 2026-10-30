@@ -14,3 +14,4 @@ if __name__ == "__main__":
         print("[Prometheus] token.json has been created and saved. Luna can now read your real emails!")
     else:
         print("\n[Prometheus] Authorization was not completed or credentials.json was missing.")
+

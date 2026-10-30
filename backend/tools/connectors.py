@@ -39,3 +39,4 @@ def query_notion_pages(query: str = "") -> List[Dict[str, str]]:
         {"title": "AI Agent Research & Benchmarks", "workspace": "Kai HQ", "updated": "This week"},
         {"title": "Odysseus Core Specs", "workspace": "Kai HQ", "updated": "This week"},
     ]
+

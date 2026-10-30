@@ -66,3 +66,4 @@ def control_playback(action: str, target: str = "") -> Dict[str, Any]:
         "state": SPOTIFY_STATE,
         "message": f"Current music status: {SPOTIFY_STATE['current_track']} ({'playing' if SPOTIFY_STATE['is_playing'] else 'paused'})"
     }
+

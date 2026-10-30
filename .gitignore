@@ -46,6 +46,8 @@ frontend/.env
 frontend/.env.local
 .npm
 .yarn/
+# Local runtime data
+backend/data/
 *.log
 
 # OS & IDE

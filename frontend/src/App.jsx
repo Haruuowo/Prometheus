@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Topbar from './components/Topbar';
-import HomeTab from './components/HomeTab';
+import PrometheusSidebar from './components/PrometheusSidebar';
+import OdysseusToolsGrid from './components/OdysseusToolsGrid';
 import Stage from './components/Stage';
 import LiveChat from './components/LiveChat';
 import BrainPipeline from './components/BrainPipeline';
-import SecondBrainTab from './components/SecondBrainTab';
-import JarvisToolsTab from './components/JarvisToolsTab';
-import PersonaTab from './components/PersonaTab';
 import AuthModal from './components/AuthModal';
 import HowItWorksModal from './components/HowItWorksModal';
+import { TOOL_REGISTRY } from './tools/registry';
 import { isFirebaseConfigured, auth, onAuthStateChanged } from './firebase';
 import './styles/pictochat.css';
 
@@ -21,14 +19,15 @@ const MOODS = {
   surprised:  { color: '#38bdf8', label: 'surprised' },
 };
 
-const DEFAULT_PROMPT = `You are Luna, the autonomous AI core of the Odysseus personal intelligence system, created for Kai.
+const DEFAULT_PROMPT = `You are Luna, the autonomous AI core of the Prometheus personal intelligence system, created for Kai.
 You are a sharp, witty, highly competent personal assistant and second-brain companion.
 You think through complex problems, organize and recall knowledge from Second Brain notes, triage incoming emails, manage schedule tasks, and execute instructions precisely.
 Keep responses concise, natural, direct, and conversational without roleplay asterisks or cringe tropes.`;
 
 export default function App() {
   // Navigation & Theme
-  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'chat' | 'brain' | 'jarvis' | 'persona'
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' is default home, or 'tools', or any tool id
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('luna_theme') || 'dark');
   const [lunaPng, setLunaPng] = useState(localStorage.getItem('luna_custom_png') || '/luna.png');
   const wsRef = useRef(null);
@@ -48,13 +47,18 @@ export default function App() {
 
   // Chat & Brain Pipeline State
   const [messages, setMessages] = useState([
-    { id: 1, user: 'Luna', text: "Odysseus Core online. Second Brain memory and tools are synchronized. What are we executing today, Kai?", platform: 'Luna' }
+    {
+      id: 1,
+      user: 'Luna',
+      text: "Prometheus Core online. All workspace tools, Second Brain memory, and Live2D neural pipeline are synchronized. What are we building or executing today?",
+      platform: 'Luna'
+    }
   ]);
-  const [stageMs, setStageMs] = useState({ chat: 1, route: 1, intent: 1, rag: 2, llm: 340 });
+  const [stageMs, setStageMs] = useState({ chat: 1, route: 1, intent: 1, rag: 2, llm: 340, tts: 0, avatar: 1 });
   const [traces, setTraces] = useState([
-    { icon: '>', html: '<b>System</b>: Personal AI Multi-Tool ready.', ms: 1 },
+    { icon: '>', html: '<b>Prometheus Core</b>: All-in-one AI workspace initialized.', ms: 1 },
     { icon: '>', html: 'route -> <b>P1 direct</b> <em>· personal assistant</em>', ms: 1 },
-    { icon: '>', html: 'intent -> <b>conversation</b>', ms: 1 }
+    { icon: '>', html: 'intent -> <b>workspace_ready</b> <em>(Luna online)</em>', ms: 1 }
   ]);
   const [activeNodes, setActiveNodes] = useState({});
 
@@ -66,11 +70,6 @@ export default function App() {
   const handleUpdateLunaPng = (dataUrl) => {
     setLunaPng(dataUrl);
     try { localStorage.setItem('luna_custom_png', dataUrl); } catch (e) {}
-  };
-
-  const handleResetLunaPng = () => {
-    setLunaPng('/luna.png');
-    try { localStorage.removeItem('luna_custom_png'); } catch (e) {}
   };
 
   const getAuthHeader = async () => {
@@ -153,7 +152,7 @@ export default function App() {
     setTraces(prev => [...prev.slice(-35), { icon, html, ms, isErr, isSep }]);
   };
 
-  // Visual Reply Reaction (No TTS)
+  // Visual Reply Reaction
   const showReplyReaction = (text, emotionName) => {
     setIsTalking(true);
     setCaption(text);
@@ -163,14 +162,34 @@ export default function App() {
     setTimeout(() => {
       setIsTalking(false);
       setCaptionActive(false);
-    }, 2800);
+    }, 3200);
   };
 
-  // Message Handling Flow (POST /chat)
+  // Message Handling Flow (POST /chat) + Automatic Intent Tool Routing
   const handleIncomingMessage = async (text, senderName = 'You', platform = 'Console') => {
     pulseNode('chat');
     setMessages(prev => [...prev, { id: Date.now() + Math.random(), text, user: senderName, platform }]);
     setThinking(true);
+
+    // Auto-detect intent to switch active tool view
+    const lower = text.toLowerCase();
+    if (lower.includes('show tools') || lower.includes('open tools') || lower.includes('tool catalog') || lower.includes('explore tools')) {
+      setActiveTab('tools');
+    } else if (lower.includes('open brain') || lower.includes('open notes') || lower.includes('second brain') || lower.includes('save note')) {
+      setActiveTab('brain');
+    } else if (lower.includes('open reminder') || lower.includes('add reminder') || lower.includes('my tasks')) {
+      setActiveTab('reminders');
+    } else if (lower.includes('deep research') || lower.includes('research topic')) {
+      setActiveTab('research');
+    } else if (lower.includes('summarize this') || lower.includes('open summarizer')) {
+      setActiveTab('summarizer');
+    } else if (lower.includes('study') || lower.includes('flashcard')) {
+      setActiveTab('study');
+    } else if (lower.includes('github') || lower.includes('repos')) {
+      setActiveTab('github');
+    } else if (lower.includes('remove background') || lower.includes('resize image') || lower.includes('compress image')) {
+      setActiveTab('image_tools');
+    }
 
     try {
       const authHeaders = await getAuthHeader();
@@ -211,7 +230,7 @@ export default function App() {
 
     } catch (err) {
       setThinking(false);
-      const fallbackReply = "I'm right here with you! What's our next move?";
+      const fallbackReply = "I'm right here with you! Your tools and Second Brain are standing by.";
       addTrace('!', `Local fallback active`, null, true);
       setMessages(prev => [...prev, { id: Date.now() + Math.random(), text: fallbackReply, user: 'Luna', platform: 'Luna' }]);
       showReplyReaction(fallbackReply, 'chill');
@@ -225,117 +244,193 @@ export default function App() {
       await fetch('/memory/reset', { method: 'POST', headers });
     } catch (e) {}
     addTrace('>', 'short-term conversation memory cleared', 1);
-    setMessages([{ id: Date.now(), user: 'Luna', text: 'Chat history cleared! Your Second Brain notes are safe.', platform: 'Luna' }]);
+    setMessages([{ id: Date.now(), user: 'Luna', text: 'Chat history reset. Second Brain vault and tool states are untouched.', platform: 'Luna' }]);
   };
 
-  // Switch to AI Chat tab and send a prompt from any tool tab
+  // Switch to AI Chat and send prompt
   const handleAskLunaFromTab = (promptText) => {
     setActiveTab('chat');
     handleIncomingMessage(promptText, user?.displayName || 'You', 'Console');
   };
 
+  // Find active tool from registry if any
+  const currentTool = TOOL_REGISTRY.find(t => t.id === activeTab);
+  const ActiveToolComponent = currentTool?.component;
+
   return (
-    <div className="app-container">
-      {/* Top Multi-Tool Navigation Bar */}
-      <Topbar 
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      width: '100vw',
+      overflow: 'hidden',
+      background: 'var(--nds-bg)'
+    }}>
+      {/* 1. Left Sidebar: Tool list + User profile + Sign out (Collapsible & Mobile Responsive) */}
+      <PrometheusSidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        brainBadge={brainBadge}
-        llmAvg={llmAvg}
+        user={user}
+        onOpenAuth={() => setShowAuth(true)}
         theme={theme}
         toggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
         onOpenHow={() => setShowHow(true)}
-        onOpenAuth={() => setShowAuth(true)}
-        user={user}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      {/* Tab 0: Odysseus Home Command Center */}
-      {activeTab === 'home' && (
-        <HomeTab
-          lunaPng={lunaPng}
-          onChangeLunaPng={handleUpdateLunaPng}
-          mood={mood}
-          brainBadge={brainBadge}
-          llmAvg={llmAvg}
-          authHeader={getAuthHeader}
-          onSelectTab={setActiveTab}
-          onAskLuna={handleAskLunaFromTab}
-        />
-      )}
+      {/* 2. Center Workspace: Active Tool (Chat is default home, or Odysseus Tools Grid) */}
+      <main style={{
+        flex: 1,
+        minWidth: 0,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '12px 14px',
+        gap: 10,
+        background: 'var(--nds-bg)',
+        overflow: 'hidden'
+      }}>
+        {/* Workspace Breadcrumb & Quick Switcher Strip */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 14px',
+          background: 'var(--nds-surface)',
+          border: '1.5px solid var(--nds-border-main)',
+          borderRadius: 8,
+          boxShadow: '1px 1px 0px var(--nds-shadow)',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 11,
+              fontWeight: 800,
+              color: 'var(--nds-blue-dark)',
+              letterSpacing: '0.08em'
+            }}>
+              PROMETHEUS // {activeTab === 'chat' ? 'AI CHAT CORE' : activeTab === 'tools' ? 'ODYSSEUS TOOL MATRIX' : (currentTool?.name?.toUpperCase() || activeTab.toUpperCase())}
+            </span>
+            <span style={{ fontSize: 10, color: '#10b981', fontWeight: 800 }}>● ACTIVE</span>
+          </div>
 
-      {/* Tab 1: AI Chatbot Workspace (Left: Luna PNG + Brain Pipeline | Right: Main AI Chatbot) */}
-      {activeTab === 'chat' && (
-        <main className="layout" style={{ gridTemplateColumns: '370px minmax(0, 1fr)' }}>
-          <aside className="side" style={{ gridTemplateRows: 'minmax(280px, 1fr) minmax(0, 1fr)' }}>
-            <Stage 
-              mood={mood}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              className={activeTab === 'chat' ? 'btn-send' : 'btn-ghost'}
+              onClick={() => setActiveTab('chat')}
+              style={{ fontSize: 11.5, padding: '4px 10px' }}
+            >
+              💬 Luna Chat
+            </button>
+            <button
+              type="button"
+              className={activeTab === 'tools' ? 'btn-send' : 'btn-ghost'}
+              onClick={() => setActiveTab('tools')}
+              style={{ fontSize: 11.5, padding: '4px 10px' }}
+            >
+              🎛️ Tool Catalog
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={handleResetMemory}
+              title="Clear short-term chat memory"
+              style={{ fontSize: 11.5, padding: '4px 8px' }}
+            >
+              🧹 Reset
+            </button>
+          </div>
+        </div>
+
+        {/* Center Content Switcher */}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {activeTab === 'tools' ? (
+            <OdysseusToolsGrid
+              tools={TOOL_REGISTRY}
+              onSelectTool={(toolId) => setActiveTab(toolId)}
+              onAskLuna={handleAskLunaFromTab}
+            />
+          ) : activeTab === 'chat' ? (
+            <LiveChat
+              messages={messages}
+              onSendMessage={handleIncomingMessage}
+              onClearChat={handleResetMemory}
               thinking={thinking}
-              caption={caption}
-              captionActive={captionActive}
-              isTalking={isTalking}
               lunaPng={lunaPng}
-              onChangeLunaPng={handleUpdateLunaPng}
+              user={user}
             />
-
-            <BrainPipeline 
-              activeNodes={activeNodes}
-              stageMs={stageMs}
-              traces={traces}
-              onResetMemory={handleResetMemory}
+          ) : ActiveToolComponent ? (
+            <div style={{ height: '100%', overflowY: 'auto' }}>
+              <ActiveToolComponent
+                authHeader={getAuthHeader}
+                onAskLuna={handleAskLunaFromTab}
+                messages={messages}
+                onSendMessage={handleIncomingMessage}
+                thinking={thinking}
+                user={user}
+                lunaPng={lunaPng}
+                initialMode={
+                  activeTab === 'img_resizer' ? 'resizer' :
+                  activeTab === 'img_compressor' ? 'compressor' :
+                  activeTab === 'palette_extractor' ? 'palette' : 'remover'
+                }
+              />
+            </div>
+          ) : (
+            <LiveChat
+              messages={messages}
+              onSendMessage={handleIncomingMessage}
+              onClearChat={handleResetMemory}
+              thinking={thinking}
+              lunaPng={lunaPng}
+              user={user}
             />
-          </aside>
+          )}
+        </div>
+      </main>
 
-          <LiveChat 
-            messages={messages}
-            onSendMessage={handleIncomingMessage}
-            onClearChat={handleResetMemory}
-            thinking={thinking}
-            lunaPng={lunaPng}
-            user={user}
-          />
-        </main>
-      )}
-
-      {/* Tab 2: Second Brain Knowledge & RAG Manager */}
-      {activeTab === 'brain' && (
-        <SecondBrainTab
-          authHeader={getAuthHeader}
-          onAskLuna={handleAskLunaFromTab}
-        />
-      )}
-
-      {/* Tab 3: Tools & Schedule */}
-      {activeTab === 'jarvis' && (
-        <JarvisToolsTab
-          authHeader={getAuthHeader}
-          onAskLuna={handleAskLunaFromTab}
-        />
-      )}
-
-      {/* Tab 4: Settings & Custom PNG */}
-      {activeTab === 'persona' && (
-        <PersonaTab
-          customPrompt={customPrompt}
-          onChangePrompt={setCustomPrompt}
-          temperature={temperature}
-          onChangeTemperature={setTemperature}
+      {/* 3. Right Panel: Luna Avatar + Live Pipeline Telemetry Trace (Router, Intent, LLM, TTS, Avatar with ms) */}
+      <aside style={{
+        width: 360,
+        minWidth: 360,
+        height: '100%',
+        display: 'grid',
+        gridTemplateRows: 'minmax(270px, 320px) minmax(0, 1fr)',
+        padding: '12px 14px 12px 0',
+        gap: 10,
+        background: 'var(--nds-bg)',
+        zIndex: 5
+      }}>
+        <Stage
+          mood={mood}
+          thinking={thinking}
+          caption={caption}
+          captionActive={captionActive}
+          isTalking={isTalking}
           lunaPng={lunaPng}
           onChangeLunaPng={handleUpdateLunaPng}
-          onResetLunaPng={handleResetLunaPng}
+        />
+
+        <BrainPipeline
+          activeNodes={activeNodes}
+          stageMs={stageMs}
+          traces={traces}
           onResetMemory={handleResetMemory}
         />
-      )}
+      </aside>
 
       {/* Modals */}
       {showAuth && (
-        <AuthModal 
+        <AuthModal
           user={user}
           onClose={() => setShowAuth(false)}
         />
       )}
 
       {showHow && (
-        <HowItWorksModal 
+        <HowItWorksModal
           onClose={() => setShowHow(false)}
         />
       )}

@@ -4,7 +4,7 @@ import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List
 from dotenv import load_dotenv
 
 # Ensure project root is in sys.path so `backend.*` imports work whether run from root or backend/
@@ -86,6 +86,28 @@ class MusicControlRequest(BaseModel):
 class ToolApproveRequest(BaseModel):
     action_id: str
     approved: bool = True
+
+
+class ReminderRequest(BaseModel):
+    title: str
+    time: Optional[str] = "Tomorrow, 3:00 PM"
+
+
+class SummarizeRequest(BaseModel):
+    text: str
+
+
+class ResearchRequest(BaseModel):
+    topic: str
+
+
+class WriteRequest(BaseModel):
+    prompt: str
+    format: str = "article"
+    tone: str = "concise"
+
+
+USER_REMINDERS: Dict[str, list] = {}
 
 
 # ── Core Pipeline Orchestrator ───────────────────────────────────────────────
@@ -329,6 +351,62 @@ async def brain_search(q: str = Query(default=""), user_info: dict = Depends(ver
     results = memory_store.search_second_brain(uid=uid, query=q, top_k=6)
     state = memory_store.list_second_brain(uid=uid)
     return {"query": q, "results": results, "total_notes": len(state["notes"]), "facts_count": state["facts_count"]}
+
+
+# ── Prometheus Workspace Service Endpoints ────────────────────────────────────
+
+@app.get("/reminders")
+@app.get("/api/reminders")
+async def get_reminders_endpoint(user_info: dict = Depends(verify_token)):
+    uid = user_info.get("uid", "kai_local")
+    if uid not in USER_REMINDERS:
+        USER_REMINDERS[uid] = [
+            {"id": "rem_1", "title": "Sync with team on Prometheus release", "time": "Tomorrow, 2:00 PM", "status": "pending"},
+            {"id": "rem_2", "title": "Review Second Brain chunks & embeddings", "time": "Friday, 5:00 PM", "status": "pending"}
+        ]
+    return USER_REMINDERS[uid]
+
+
+@app.post("/reminders")
+@app.post("/api/reminders")
+async def add_reminder_endpoint(req: ReminderRequest, user_info: dict = Depends(verify_token)):
+    uid = user_info.get("uid", "kai_local")
+    if uid not in USER_REMINDERS:
+        USER_REMINDERS[uid] = []
+    rem = {
+        "id": f"rem_{int(time.time() * 1000)}",
+        "title": req.title,
+        "time": req.time or "Tomorrow",
+        "status": "pending"
+    }
+    USER_REMINDERS[uid].append(rem)
+    return {"ok": True, "reminder": rem}
+
+
+@app.post("/summarize")
+@app.post("/api/summarize")
+async def summarize_endpoint(req: SummarizeRequest, user_info: dict = Depends(verify_token)):
+    prompt = f"Summarize the following text concisely with bullet points and main takeaways:\n\n{req.text}"
+    res = await asyncio.to_thread(llm_engine.generate_sync, user_message=prompt)
+    return {"ok": True, "summary": res.get("reply", "")}
+
+
+@app.post("/research")
+@app.post("/api/research")
+async def research_endpoint(req: ResearchRequest, user_info: dict = Depends(verify_token)):
+    citations = web_search.search_web(req.topic)
+    context_str = "\n".join([f"- [{c.get('title', 'Source')}] ({c.get('url', '')}): {c.get('snippet', '')}" for c in citations])
+    prompt = f"Synthesize a clear research briefing for '{req.topic}' using these web sources:\n\n{context_str}"
+    res = await asyncio.to_thread(llm_engine.generate_sync, user_message=prompt)
+    return {"ok": True, "topic": req.topic, "citations": citations, "insights": res.get("reply", "")}
+
+
+@app.post("/write")
+@app.post("/api/write")
+async def write_endpoint(req: WriteRequest, user_info: dict = Depends(verify_token)):
+    prompt = f"Write a polished {req.format} with a {req.tone} tone based on this prompt:\n\n{req.prompt}"
+    res = await asyncio.to_thread(llm_engine.generate_sync, user_message=prompt)
+    return {"ok": True, "draft": res.get("reply", "")}
 
 
 @app.post("/tools/approve")

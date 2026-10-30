@@ -104,3 +104,4 @@ def search_github(query: str, search_type: str = "repositories") -> List[Dict[st
             ]
     except Exception as e:
         return []
+

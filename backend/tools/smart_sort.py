@@ -56,3 +56,4 @@ def smart_sort_directory(directory_path: str, dry_run: bool = True) -> Dict[str,
         "files_found": len(actions),
         "actions": actions
     }
+

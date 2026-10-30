@@ -81,3 +81,4 @@ def search_web(query: str, max_results: int = 4) -> List[Dict[str, str]]:
         })
 
     return results[:max_results]
+

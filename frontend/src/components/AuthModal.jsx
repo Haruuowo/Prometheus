@@ -3,7 +3,6 @@ import {
   isFirebaseConfigured,
   auth,
   githubProvider,
-  googleProvider,
   GithubAuthProvider,
   signInWithPopup,
   linkWithCredential,
@@ -51,7 +50,7 @@ export default function AuthModal({
     return false;
   };
 
-  // 1. Direct GitHub Student Sign-In
+  // 1. Direct GitHub Username Sync
   const handleDirectGithubSignIn = async (e) => {
     e.preventDefault();
     if (!ghHandle.trim()) return;
@@ -67,7 +66,7 @@ export default function AuthModal({
     }
   };
 
-  // 2. Firebase GitHub OAuth Popup Sign-In (Handles account-exists-with-different-credential automatically!)
+  // 2. Firebase GitHub OAuth Popup Sign-In
   const handleGithubOAuth = async () => {
     if (!isFirebaseConfigured || !auth || !githubProvider) {
       if (ghHandle.trim()) {
@@ -87,8 +86,6 @@ export default function AuthModal({
       await syncWithGithubToken(token, screenName);
       onClose();
     } catch (err) {
-      // If the user previously signed in with Google using the same email,
-      // Firebase still returns the valid GitHub OAuth credential inside the error!
       if (
         err?.code === 'auth/account-exists-with-different-credential' ||
         err?.code === 'auth/credential-already-in-use'
@@ -96,7 +93,6 @@ export default function AuthModal({
         const pendingCred = GithubAuthProvider.credentialFromError(err);
         const token = pendingCred?.accessToken;
 
-        // If already signed in with Google in this browser, link GitHub to their Firebase account
         if (auth.currentUser && pendingCred) {
           try {
             await linkWithCredential(auth.currentUser, pendingCred);
@@ -117,21 +113,6 @@ export default function AuthModal({
       } else {
         setError(err.message || 'GitHub OAuth sign-in failed.');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. Optional Google OAuth Sign-In
-  const handleGoogleOAuth = async () => {
-    if (!isFirebaseConfigured || !auth || !googleProvider) return;
-    setError('');
-    setLoading(true);
-    try {
-      await signInWithPopup(auth, googleProvider);
-      onClose();
-    } catch (err) {
-      setError(err.message || 'Google sign-in failed.');
     } finally {
       setLoading(false);
     }
@@ -169,17 +150,16 @@ export default function AuthModal({
           gap: 18
         }}
       >
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10.5, color: '#f59e0b', fontWeight: 800 }}>
-              ODYSSEUS // STUDENT AUTH
+              ODYSSEUS // GITHUB AUTH
             </span>
             <h2 style={{ fontSize: 21, fontWeight: 800, color: '#ffffff', marginTop: 4 }}>
               {isSignedIn ? 'Connected GitHub Account' : 'Sign in with GitHub'}
             </h2>
             <p style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 4 }}>
-              Sync your repositories, contribution graph, and project to-dos across the workspace.
+              Sync your repositories, contribution graph, deadlines, and project notes.
             </p>
           </div>
           <button
@@ -191,7 +171,6 @@ export default function AuthModal({
           </button>
         </div>
 
-        {/* Active Signed-In Profile Card */}
         {isSignedIn && (
           <div style={{
             padding: 16,
@@ -221,62 +200,38 @@ export default function AuthModal({
           </div>
         )}
 
-        {/* GitHub OAuth Primary Button */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button
-            type="button"
-            onClick={handleGithubOAuth}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: 10,
-              border: '1px solid #30363d',
-              background: '#24292f',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: 13.5,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              cursor: 'pointer'
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-            {loading ? 'Connecting GitHub...' : 'Continue with GitHub OAuth'}
-          </button>
+        <button
+          type="button"
+          onClick={handleGithubOAuth}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            borderRadius: 10,
+            border: '1px solid #30363d',
+            background: '#24292f',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: 13.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            cursor: 'pointer'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+          </svg>
+          {loading ? 'Connecting GitHub...' : 'Continue with GitHub OAuth'}
+        </button>
 
-          <button
-            type="button"
-            onClick={handleGoogleOAuth}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '10px 16px',
-              borderRadius: 10,
-              border: '1px solid #2b303c',
-              background: '#181b22',
-              color: '#cbd5e1',
-              fontWeight: 600,
-              fontSize: 12.5,
-              cursor: 'pointer'
-            }}
-          >
-            Continue with Google
-          </button>
-        </div>
-
-        {/* Divider */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6b7280', fontSize: 11 }}>
           <div style={{ flex: 1, height: 1, background: '#232730' }} />
-          <span>OR ENTER GITHUB USERNAME</span>
+          <span>OR SYNC BY GITHUB USERNAME</span>
           <div style={{ flex: 1, height: 1, background: '#232730' }} />
         </div>
 
-        {/* Instant GitHub Username Sign-In / Switch Account */}
         <form onSubmit={handleDirectGithubSignIn} style={{ display: 'flex', gap: 8 }}>
           <input
             type="text"

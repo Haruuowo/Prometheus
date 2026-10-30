@@ -1,25 +1,81 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuthModal from './components/AuthModal';
 import { TOOL_REGISTRY } from './tools/registry';
 import { isFirebaseConfigured, auth, onAuthStateChanged } from './firebase';
 import './styles/odysseus.css';
 
-const MOODS = {
-  chill:      { color: '#a78bfa', label: 'chill & witty' },
-  supportive: { color: '#34d399', label: 'supportive & curious' },
-  upbeat:     { color: '#f472b6', label: 'upbeat & sharp' },
-  happy:      { color: '#f472b6', label: 'happy & upbeat' },
-  smug:       { color: '#f59e0b', label: 'clever banter' },
-  surprised:  { color: '#38bdf8', label: 'surprised' },
-};
-
-const DEFAULT_PROMPT = `You are Luna, the AI CS companion and engineering mentor inside the Odysseus Student Workspace.
-You help Computer Science students understand algorithms & Big-O complexity, debug code, deploy apps (Vercel, Render, Railway, GitHub Pages), write great READMEs, and recall their Second Brain lecture notes. Keep responses concise, practical, and encouraging.`;
-
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const FULL_MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function toDateKey(dateObj) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function addDaysKey(baseDate, offsetDays) {
+  const d = new Date(baseDate);
+  d.setDate(d.getDate() + offsetDays);
+  return toDateKey(d);
+}
+
+function getRelativeDayLabel(dateStr, todayStr) {
+  if (!dateStr) return '';
+  if (dateStr === todayStr) return 'DUE TODAY';
+  const target = new Date(dateStr + 'T00:00:00');
+  const today = new Date(todayStr + 'T00:00:00');
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+  if (diffDays === 1) return 'TOMORROW';
+  if (diffDays > 1) return `IN ${diffDays}D`;
+  if (diffDays === -1) return 'YESTERDAY';
+  return `${Math.abs(diffDays)}D AGO`;
+}
+
+function buildMonthlyGrid(year, month) {
+  const firstDay = new Date(year, month, 1);
+  const startDow = firstDay.getDay(); // 0..6
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  const cells = [];
+  // Leading days from previous month
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = new Date(year, month - 1, prevMonthDays - i);
+    cells.push({
+      dateKey: toDateKey(d),
+      dayNum: d.getDate(),
+      inCurrentMonth: false
+    });
+  }
+  // Current month days
+  for (let dNum = 1; dNum <= daysInMonth; dNum++) {
+    const d = new Date(year, month, dNum);
+    cells.push({
+      dateKey: toDateKey(d),
+      dayNum: dNum,
+      inCurrentMonth: true
+    });
+  }
+  // Trailing days to complete 35 or 42 cells
+  const totalSlots = cells.length > 35 ? 42 : 35;
+  let nextDay = 1;
+  while (cells.length < totalSlots) {
+    const d = new Date(year, month + 1, nextDay++);
+    cells.push({
+      dateKey: toDateKey(d),
+      dayNum: d.getDate(),
+      inCurrentMonth: false
+    });
+  }
+  return cells;
+}
 
 function buildContributionCalendar(daysList = []) {
-  // If backend hasn't returned days yet, generate 52 empty weeks so layout stays crisp
   let items = daysList;
   if (!items || items.length === 0) {
     const fallback = [];
@@ -41,7 +97,7 @@ function buildContributionCalendar(daysList = []) {
 
   items.forEach((dayObj, idx) => {
     const dt = new Date(dayObj.date + 'T00:00:00');
-    const dow = dt.getDay(); // 0 = Sun .. 6 = Sat
+    const dow = dt.getDay();
     currentWeek[dow] = dayObj;
     if (dow === 6 || idx === items.length - 1) {
       weeks.push(currentWeek);
@@ -49,7 +105,6 @@ function buildContributionCalendar(daysList = []) {
     }
   });
 
-  // Compute month labels across weeks
   const monthLabels = [];
   let lastMonth = -1;
   weeks.forEach((wk, wIdx) => {
@@ -69,7 +124,7 @@ function buildContributionCalendar(daysList = []) {
 }
 
 export default function App() {
-  // User & Auth
+  // User & GitHub Auth
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
 
@@ -80,9 +135,187 @@ export default function App() {
   const [githubInput, setGithubInput] = useState(
     localStorage.getItem('odysseus_github_user') || 'Haruuowo'
   );
-  const [contribYear, setContribYear] = useState('last'); // 'last' (2026), '2025', '2024'
+  const [contribYear, setContribYear] = useState('last');
   const [githubData, setGithubData] = useState(null);
   const [githubLoading, setGithubLoading] = useState(false);
+
+  // Notion-Style Calendar & Deadlines State
+  const todayObj = new Date();
+  const todayKey = toDateKey(todayObj);
+  const [calYear, setCalYear] = useState(todayObj.getFullYear());
+  const [calMonth, setCalMonth] = useState(todayObj.getMonth());
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+
+  const [deadlines, setDeadlines] = useState(() => {
+    try {
+      const saved = localStorage.getItem('odysseus_deadlines_v2');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    const now = new Date();
+    return [
+      {
+        id: 'dl_1',
+        title: 'CS301 Graph Algorithms Lab Submission',
+        date: addDaysKey(now, 0),
+        time: '11:59 PM',
+        category: 'LAB',
+        course: 'CS301',
+        done: false
+      },
+      {
+        id: 'dl_2',
+        title: 'Deploy Prometheus Portfolio to Vercel',
+        date: addDaysKey(now, 2),
+        time: '6:00 PM',
+        category: 'PROJECT',
+        course: 'GITHUB',
+        done: false
+      },
+      {
+        id: 'dl_3',
+        title: 'Operating Systems Midterm (Processes & Virtual Memory)',
+        date: addDaysKey(now, 5),
+        time: '10:00 AM',
+        category: 'EXAM',
+        course: 'CS310',
+        done: false
+      },
+      {
+        id: 'dl_4',
+        title: 'University Hackathon Demo & Devpost Pitch',
+        date: addDaysKey(now, 9),
+        time: '5:00 PM',
+        category: 'HACKATHON',
+        course: 'TEAM',
+        done: false
+      }
+    ];
+  });
+
+  const [newDeadlineTitle, setNewDeadlineTitle] = useState('');
+  const [newDeadlineCategory, setNewDeadlineCategory] = useState('LAB');
+  const [newDeadlineTime, setNewDeadlineTime] = useState('11:59 PM');
+  const [deadlineFilter, setDeadlineFilter] = useState('UPCOMING'); // 'UPCOMING' | 'SELECTED_DATE' | 'DONE'
+  const [rightTab, setRightTab] = useState('DEADLINES'); // 'DEADLINES' | 'PAGES'
+
+  // Notion Quick Pages State
+  const [notionPages, setNotionPages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('odysseus_notion_pages_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'pg_1',
+        title: '📘 CS Semester Hub & Study Roadmap',
+        content: `# CS Semester Hub\n\n## Weekly Goals\n- [x] Sync GitHub repositories & contribution graph\n- [ ] Finish Graph BFS / Dijkstra Lab before Friday 11:59 PM\n- [ ] Deploy full-stack project on Vercel + Render\n\n## Key Links & Commands\n- Run Frontend: \`npm run dev\`\n- Run Backend: \`python backend/main.py\``
+      },
+      {
+        id: 'pg_2',
+        title: '💼 SWE Internship & Resume Checklist',
+        content: `# SWE Internship Tracker\n\n## Portfolio Highlights\n1. **Prometheus / Odysseus**: CS Student Productivity & GitHub Workspace\n2. Clean README.md with architecture diagrams & live demo links\n3. Practice 2 DSA flashcards + 1 Big-O analysis daily`
+      },
+      {
+        id: 'pg_3',
+        title: '🧠 Algorithms & System Design Scratchpad',
+        content: `# Algorithms Cheat Sheet\n\n- **Hash Map Lookup**: O(1) average, O(n) worst-case\n- **Binary Search / Balanced BST**: O(log n)\n- **Merge Sort / Heap Sort**: O(n log n) time\n- **BFS**: Shortest path on unweighted graphs O(V + E)`
+      }
+    ];
+  });
+  const [activePageId, setActivePageId] = useState('pg_1');
+  const [pageSaveNotice, setPageSaveNotice] = useState('');
+
+  const saveDeadlines = (nextList) => {
+    setDeadlines(nextList);
+    try {
+      localStorage.setItem('odysseus_deadlines_v2', JSON.stringify(nextList));
+    } catch (e) {}
+  };
+
+  const saveNotionPages = (nextPages) => {
+    setNotionPages(nextPages);
+    try {
+      localStorage.setItem('odysseus_notion_pages_v1', JSON.stringify(nextPages));
+    } catch (e) {}
+  };
+
+  const handleAddDeadline = async (e) => {
+    e.preventDefault();
+    if (!newDeadlineTitle.trim()) return;
+    const item = {
+      id: `dl_${Date.now()}`,
+      title: newDeadlineTitle.trim(),
+      date: selectedDate,
+      time: newDeadlineTime.trim() || '11:59 PM',
+      category: newDeadlineCategory,
+      done: false
+    };
+    const next = [...deadlines, item].sort((a, b) => a.date.localeCompare(b.date));
+    saveDeadlines(next);
+    setNewDeadlineTitle('');
+
+    // Also sync to backend reminders endpoint
+    try {
+      const headers = await getAuthHeader();
+      await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `[${item.category}] ${item.title}`,
+          time: `${item.date} • ${item.time}`
+        })
+      });
+    } catch (err) {}
+  };
+
+  const handleToggleDeadline = (id) => {
+    const next = deadlines.map((d) => (d.id === id ? { ...d, done: !d.done } : d));
+    saveDeadlines(next);
+  };
+
+  const handleDeleteDeadline = (id) => {
+    const next = deadlines.filter((d) => d.id !== id);
+    saveDeadlines(next);
+  };
+
+  const handleCreateNotionPage = () => {
+    const newId = `pg_${Date.now()}`;
+    const newPage = {
+      id: newId,
+      title: `📄 New Note (${selectedDate})`,
+      content: `# New CS Page\n\nWrite your lecture notes, project specs, or todo items here...`
+    };
+    const next = [...notionPages, newPage];
+    saveNotionPages(next);
+    setActivePageId(newId);
+  };
+
+  const handleUpdateActivePage = (field, val) => {
+    const next = notionPages.map((p) => (p.id === activePageId ? { ...p, [field]: val } : p));
+    saveNotionPages(next);
+  };
+
+  const handleSyncActivePageToVault = async () => {
+    const current = notionPages.find((p) => p.id === activePageId);
+    if (!current) return;
+    setPageSaveNotice('Syncing to Vault...');
+    try {
+      const headers = await getAuthHeader();
+      await fetch('/brain/ingest', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: current.title,
+          content: current.content,
+          source_type: 'notion_page'
+        })
+      });
+      setPageSaveNotice('✓ Synced to Second Brain Vault');
+    } catch (e) {
+      setPageSaveNotice('✓ Saved locally');
+    }
+    setTimeout(() => setPageSaveNotice(''), 2200);
+  };
 
   // Active Tool Modal (null = viewing main page)
   const [activeToolId, setActiveToolId] = useState(null);
@@ -100,7 +333,7 @@ export default function App() {
           { id: 't1', text: 'Connect custom domain on Vercel', tag: 'DEPLOY', done: false },
           { id: 't2', text: 'Add more CS interview flashcards', tag: 'FEATURE', done: false }
         ],
-        notes: 'Main Odysseus CS Student Workspace.\nFrontend: React + Vite\nBackend: FastAPI + Groq LLM'
+        notes: 'Main Odysseus CS Student Workspace.\nFrontend: React + Vite\nBackend: FastAPI'
       }
     };
   });
@@ -160,6 +393,21 @@ export default function App() {
     saveProjectStore(nextStore);
   };
 
+  const handlePinProjectTodoToCalendar = (repoName, todoItem) => {
+    const newDl = {
+      id: `dl_${Date.now()}`,
+      title: `[${repoName}] ${todoItem.text}`,
+      date: selectedDate,
+      time: '11:59 PM',
+      category: 'PROJECT',
+      done: Boolean(todoItem.done)
+    };
+    const next = [...deadlines, newDl].sort((a, b) => a.date.localeCompare(b.date));
+    saveDeadlines(next);
+    setProjectSyncStatus(`✓ Pinned to Calendar (${selectedDate})`);
+    setTimeout(() => setProjectSyncStatus(''), 2200);
+  };
+
   const handleChangeProjectNotes = (repoName, notesVal) => {
     const current = getRepoData(repoName);
     const nextStore = {
@@ -170,7 +418,7 @@ export default function App() {
   };
 
   const syncProjectToSecondBrain = async (repoName, todosList, notesText) => {
-    setProjectSyncStatus('Syncing with Luna Second Brain...');
+    setProjectSyncStatus('Saving project workspace...');
     try {
       const headers = await getAuthHeader();
       const pending = todosList.filter((t) => !t.done).map((t) => `[${t.tag}] ${t.text}`).join('; ');
@@ -185,7 +433,7 @@ export default function App() {
           source_type: 'project_plan'
         })
       });
-      setProjectSyncStatus('✓ Saved & synced to Luna memory');
+      setProjectSyncStatus('✓ Saved & synced to Notes Vault');
     } catch (e) {
       setProjectSyncStatus('✓ Saved locally');
     }
@@ -195,27 +443,6 @@ export default function App() {
   // Tool Grid Filters
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Luna Avatar & Telemetry State
-  const [lunaPng, setLunaPng] = useState(localStorage.getItem('luna_custom_png') || '/luna.png');
-  const [mood, setMood] = useState(MOODS.chill);
-  const [thinking, setThinking] = useState(false);
-  const [isTalking, setIsTalking] = useState(false);
-  const [stageMs, setStageMs] = useState({ route: 1, intent: 1, rag: 2, llm: 310 });
-  const [activeNodes, setActiveNodes] = useState({});
-
-  // Chat State
-  const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      user: 'Luna',
-      text: "Hey! Your GitHub contribution graph, repositories, and CS Student tools are live. Ask me to analyze Big-O complexity, help deploy your repos to Vercel/Render, or open any tool below!",
-    }
-  ]);
-
-  const chatEndRef = useRef(null);
-  const wsRef = useRef(null);
 
   // Fetch GitHub Overview, Repos & Contributions
   const fetchGithubProfile = async (targetUser, targetYear = contribYear) => {
@@ -244,7 +471,7 @@ export default function App() {
     fetchGithubProfile(githubUsername, yr);
   };
 
-  // Firebase Auth Listener
+  // Firebase Auth Listener (GitHub OAuth)
   useEffect(() => {
     if (isFirebaseConfigured && auth) {
       const unsub = onAuthStateChanged(auth, (currentUser) => {
@@ -259,59 +486,6 @@ export default function App() {
     }
   }, []);
 
-  // Auto-scroll chat box inside console
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [messages, thinking]);
-
-  // WebSocket live telemetry connection
-  useEffect(() => {
-    let reconnectTimer = null;
-    const connectWs = () => {
-      try {
-        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsHost = window.location.port === '5173' ? '127.0.0.1:8085' : window.location.host;
-        const ws = new WebSocket(`${proto}://${wsHost}/ws`);
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-          try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'emotion') {
-              const emo = String(msg.data || msg.emotion || 'chill').toLowerCase();
-              if (MOODS[emo]) setMood(MOODS[emo]);
-            } else if (msg.type === 'pipeline_trace') {
-              const tr = msg.data || msg;
-              if (tr.stage) {
-                pulseNode(tr.stage);
-                if (tr.ms != null) {
-                  setStageMs((prev) => ({ ...prev, [tr.stage]: tr.ms }));
-                }
-              }
-            }
-          } catch (e) {}
-        };
-
-        ws.onclose = () => {
-          reconnectTimer = setTimeout(connectWs, 3500);
-        };
-      } catch (e) {}
-    };
-
-    connectWs();
-    return () => {
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (wsRef.current) wsRef.current.close();
-    };
-  }, []);
-
-  const pulseNode = (nodeName) => {
-    setActiveNodes((prev) => ({ ...prev, [nodeName]: true }));
-    setTimeout(() => {
-      setActiveNodes((prev) => ({ ...prev, [nodeName]: false }));
-    }, 1000);
-  };
-
   const getAuthHeader = async () => {
     if (user && typeof user.getIdToken === 'function') {
       try {
@@ -325,92 +499,44 @@ export default function App() {
     return { Authorization: 'Bearer dev' };
   };
 
-  const handleAvatarUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
-      setLunaPng(dataUrl);
-      try { localStorage.setItem('luna_custom_png', dataUrl); } catch (err) {}
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Send message to Luna
-  const handleSendMessage = async (textOverride) => {
-    const text = (textOverride ?? chatInput).trim();
-    if (!text) return;
-    if (!textOverride) setChatInput('');
-
-    const senderName = user?.displayName || user?.email?.split('@')[0] || 'You';
-    setMessages((prev) => [...prev, { id: Date.now() + Math.random(), user: senderName, text }]);
-    setThinking(true);
-    pulseNode('route');
-
-    const lower = text.toLowerCase();
-    if (lower.includes('open deploy') || lower.includes('vercel') || lower.includes('where to publish')) {
-      setActiveToolId('deploy_hub');
-    } else if (lower.includes('open big-o') || lower.includes('analyze complexity')) {
-      setActiveToolId('bigo_analyzer');
-    } else if (lower.includes('open readme') || lower.includes('generate readme')) {
-      setActiveToolId('readme_builder');
-    } else if (lower.includes('open sandbox') || lower.includes('run python')) {
-      setActiveToolId('sandbox');
-    } else if (lower.includes('flashcard') || lower.includes('interview prep')) {
-      setActiveToolId('cs_flashcards');
-    }
-
-    try {
-      const authHeaders = await getAuthHeader();
-      const ghSummary = githubData
-        ? `\n[Student GitHub Context: @${githubData.username}, ${githubData?.contributions?.total || 265} contributions, ${githubData.public_repos} public repos, top repos: ${(githubData.repos || []).slice(0, 4).map(r => `${r.name} (${r.language})`).join(', ')}]`
-        : '';
-
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: { ...authHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text,
-          user: senderName,
-          platform: 'Console',
-          system_prompt: DEFAULT_PROMPT + ghSummary,
-          temperature: 0.75
-        })
-      });
-
-      const data = await res.json();
-      setThinking(false);
-
-      if (data.stage_ms) {
-        setStageMs((prev) => ({ ...prev, ...data.stage_ms }));
-      }
-
-      const replyText = data.reply || 'Done!';
-      setMessages((prev) => [...prev, { id: Date.now() + Math.random(), user: 'Luna', text: replyText }]);
-
-      const emoKey = String(data.emotion || 'chill').toLowerCase();
-      setMood(MOODS[emoKey] || MOODS.chill);
-      setIsTalking(true);
-      setTimeout(() => setIsTalking(false), 2600);
-    } catch (err) {
-      setThinking(false);
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + Math.random(), user: 'Luna', text: "I'm right here! Pick any CS tool below or ask me about your repos." }
-      ]);
+  // Calendar Month Navigation
+  const handlePrevMonth = () => {
+    if (calMonth === 0) {
+      setCalYear(calYear - 1);
+      setCalMonth(11);
+    } else {
+      setCalMonth(calMonth - 1);
     }
   };
 
-  const handleResetChat = async () => {
-    try {
-      const headers = await getAuthHeader();
-      await fetch('/memory/reset', { method: 'POST', headers });
-    } catch (e) {}
-    setMessages([
-      { id: Date.now(), user: 'Luna', text: 'Conversation history cleared! Your Second Brain lecture notes are safe.' }
-    ]);
+  const handleNextMonth = () => {
+    if (calMonth === 11) {
+      setCalYear(calYear + 1);
+      setCalMonth(0);
+    } else {
+      setCalMonth(calMonth + 1);
+    }
   };
+
+  const handleJumpToday = () => {
+    const now = new Date();
+    setCalYear(now.getFullYear());
+    setCalMonth(now.getMonth());
+    setSelectedDate(toDateKey(now));
+  };
+
+  const calendarCells = buildMonthlyGrid(calYear, calMonth);
+
+  // Filter deadlines for right-hand board
+  const filteredDeadlines = deadlines
+    .filter((d) => {
+      if (deadlineFilter === 'SELECTED_DATE') return d.date === selectedDate;
+      if (deadlineFilter === 'DONE') return d.done;
+      return !d.done; // 'UPCOMING'
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const activeNotionPage = notionPages.find((p) => p.id === activePageId) || notionPages[0];
 
   // Build Contribution Calendar Columns & Months
   const contribTotal = githubData?.contributions?.total ?? 265;
@@ -450,15 +576,15 @@ export default function App() {
       <header className="odysseus-header">
         <div className="odysseus-brand">
           <div className="odysseus-brand-top">
-            <span className="odysseus-tag">ODYSSEUS // CS STUDENT HUB</span>
+            <span className="odysseus-tag">ODYSSEUS // CS STUDENT PLANNER & GITHUB HUB</span>
             <span className="odysseus-status">
               <span className="odysseus-status-dot" />
-              GITHUB & LUNA SYNCED
+              DEADLINES, NOTES & GITHUB SYNCED
             </span>
           </div>
-          <h1 className="odysseus-title">Computer Science Workspace</h1>
+          <h1 className="odysseus-title">CS Student Productivity & GitHub Workspace</h1>
           <p className="odysseus-subtitle">
-            Connect your GitHub, track your contribution graph, deploy your projects, and study with Luna.
+            Plan assignments & exam deadlines on your calendar, write structured Notion-style pages, track your GitHub contributions, and launch CS tools.
           </p>
         </div>
 
@@ -470,14 +596,6 @@ export default function App() {
             style={{ borderColor: 'rgba(245, 158, 11, 0.5)', color: '#f59e0b' }}
           >
             🚀 Publish / Deploy Site
-          </button>
-          <button
-            type="button"
-            className="odysseus-pill-btn"
-            onClick={handleResetChat}
-            title="Clear chat history"
-          >
-            Reset Chat
           </button>
           <button
             type="button"
@@ -500,117 +618,307 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── Section 1: Luna AI CS Companion Console ── */}
-      <section className="luna-console">
-        <div className="luna-avatar-panel">
-          <div className="luna-avatar-top">
-            <span className="luna-name-badge">
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: mood.color }} />
-              Luna • {mood.label}
-            </span>
-
-            <label
-              htmlFor="luna-avatar-upload"
-              style={{ fontSize: 11, color: '#9ca3af', cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace' }}
-              title="Upload custom avatar PNG"
-            >
-              [Change PNG]
-              <input id="luna-avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-            </label>
-          </div>
-
-          <div className="luna-avatar-stage">
-            <img
-              src={lunaPng}
-              alt="Luna Avatar"
-              className={`luna-avatar-img ${isTalking ? 'talking' : ''}`}
-            />
-          </div>
-
-          <div className="luna-pipeline-bar">
-            <div className={`pipeline-chip ${activeNodes.route ? 'active' : ''}`}>
-              <span className="pipeline-chip-label">Route</span>
-              <span className="pipeline-chip-ms">{stageMs.route || 1}ms</span>
+      {/* ── Section 1: Notion-Style Deadline Calendar & Productivity Hub ── */}
+      <section className="notion-workspace">
+        {/* Left: Interactive Monthly Deadline Calendar */}
+        <div className="calendar-panel">
+          <div className="calendar-header">
+            <div className="calendar-title-group">
+              <span className="calendar-month-title">
+                📅 {FULL_MONTH_NAMES[calMonth]} {calYear}
+              </span>
+              <span style={{
+                fontSize: 11,
+                fontFamily: 'JetBrains Mono, monospace',
+                color: '#f59e0b',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                padding: '2px 8px',
+                borderRadius: 999
+              }}>
+                Selected: {selectedDate}
+              </span>
             </div>
-            <div className={`pipeline-chip ${activeNodes.intent ? 'active' : ''}`}>
-              <span className="pipeline-chip-label">Intent</span>
-              <span className="pipeline-chip-ms">{stageMs.intent || 1}ms</span>
-            </div>
-            <div className={`pipeline-chip ${activeNodes.rag ? 'active' : ''}`}>
-              <span className="pipeline-chip-label">RAG</span>
-              <span className="pipeline-chip-ms">{stageMs.rag || 2}ms</span>
-            </div>
-            <div className={`pipeline-chip ${activeNodes.llm ? 'active' : ''}`}>
-              <span className="pipeline-chip-label">LLM</span>
-              <span className="pipeline-chip-ms">{stageMs.llm || 310}ms</span>
+
+            <div className="calendar-nav-btns">
+              <button type="button" className="calendar-nav-btn" onClick={handlePrevMonth}>
+                &larr; Prev
+              </button>
+              <button type="button" className="calendar-nav-btn" onClick={handleJumpToday}>
+                Today
+              </button>
+              <button type="button" className="calendar-nav-btn" onClick={handleNextMonth}>
+                Next &rarr;
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="luna-chat-panel">
-          <div className="luna-chat-messages">
-            {messages.map((msg) => {
-              const isLuna = msg.user === 'Luna';
+          {/* Weekday Headers */}
+          <div className="calendar-weekdays">
+            {WEEKDAYS.map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+
+          {/* 7-Column Calendar Grid */}
+          <div className="calendar-grid">
+            {calendarCells.map((cell) => {
+              const dayEvents = deadlines.filter((d) => d.date === cell.dateKey);
+              const isToday = cell.dateKey === todayKey;
+              const isSelected = cell.dateKey === selectedDate;
+
               return (
-                <div key={msg.id} className={`chat-bubble-row ${isLuna ? 'luna' : 'user'}`}>
-                  <div className="chat-bubble">
-                    <div style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      marginBottom: 4,
-                      color: isLuna ? '#f59e0b' : '#9ca3af',
-                      fontFamily: 'JetBrains Mono, monospace'
-                    }}>
-                      {isLuna ? 'LUNA' : msg.user.toUpperCase()}
-                    </div>
-                    {msg.text}
+                <div
+                  key={cell.dateKey}
+                  className={`calendar-day ${!cell.inCurrentMonth ? 'muted' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                  onClick={() => setSelectedDate(cell.dateKey)}
+                >
+                  <div className="calendar-day-num">
+                    <span>{cell.dayNum}</span>
+                    {dayEvents.length > 0 && (
+                      <span style={{ fontSize: 9, color: '#9ca3af' }}>{dayEvents.length}</span>
+                    )}
+                  </div>
+
+                  <div className="calendar-day-events">
+                    {dayEvents.slice(0, 3).map((ev) => (
+                      <div
+                        key={ev.id}
+                        className={`deadline-pill cat-${ev.category || 'LAB'} ${ev.done ? 'done' : ''}`}
+                        title={`${ev.title} (${ev.time})`}
+                      >
+                        {ev.title}
+                      </div>
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <span style={{ fontSize: 9, color: '#9ca3af', paddingLeft: 2 }}>
+                        +{dayEvents.length - 3} more
+                      </span>
+                    )}
                   </div>
                 </div>
               );
             })}
-            {thinking && (
-              <div className="chat-bubble-row luna">
-                <div className="chat-bubble" style={{ color: '#9ca3af', fontStyle: 'italic' }}>
-                  Luna is thinking...
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
           </div>
 
-          <div className="luna-quick-prompts">
-            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('deploy_hub')}>
-              🚀 Where to host my site (Vercel/Render)?
-            </button>
-            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('bigo_analyzer')}>
-              ⚡ Analyze Big-O Complexity
-            </button>
-            <button type="button" className="quick-prompt-chip" onClick={() => handleSendMessage(`Review my GitHub repositories for @${githubUsername} and suggest what to improve for my CS portfolio.`)}>
-              🐙 Review My GitHub Portfolio
-            </button>
-            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('cs_flashcards')}>
-              📚 DSA Interview Flashcards
-            </button>
-          </div>
-
-          <form
-            className="luna-chat-input-row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-          >
+          {/* Quick Add Deadline Bar for Selected Date */}
+          <form className="calendar-quick-add" onSubmit={handleAddDeadline}>
             <input
               type="text"
-              className="luna-chat-input"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask Luna to debug code, explain an algorithm, or help deploy your project..."
+              className="notion-input"
+              value={newDeadlineTitle}
+              onChange={(e) => setNewDeadlineTitle(e.target.value)}
+              placeholder={`Add deadline on ${selectedDate} (e.g. CS301 Homework 4, OS Midterm)...`}
             />
-            <button type="submit" className="luna-send-btn" disabled={thinking}>
-              Send &rarr;
+            <select
+              className="notion-input"
+              value={newDeadlineCategory}
+              onChange={(e) => setNewDeadlineCategory(e.target.value)}
+              style={{ color: '#f59e0b', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', fontSize: 11.5 }}
+            >
+              <option value="LAB">LAB / HW</option>
+              <option value="EXAM">EXAM / QUIZ</option>
+              <option value="PROJECT">PROJECT</option>
+              <option value="HACKATHON">HACKATHON</option>
+            </select>
+            <input
+              type="text"
+              className="notion-input"
+              value={newDeadlineTime}
+              onChange={(e) => setNewDeadlineTime(e.target.value)}
+              placeholder="11:59 PM"
+            />
+            <button type="submit" className="notion-gold-btn">
+              + Add to {selectedDate.slice(5)}
             </button>
           </form>
+        </div>
+
+        {/* Right: Upcoming Deadlines Board & Notion Pages */}
+        <div className="notion-side-panel">
+          <div className="notion-tabs">
+            <div className="notion-tab-group">
+              <button
+                type="button"
+                className={`notion-tab-btn ${rightTab === 'DEADLINES' ? 'active' : ''}`}
+                onClick={() => setRightTab('DEADLINES')}
+              >
+                ⏰ Deadlines ({deadlines.filter((d) => !d.done).length})
+              </button>
+              <button
+                type="button"
+                className={`notion-tab-btn ${rightTab === 'PAGES' ? 'active' : ''}`}
+                onClick={() => setRightTab('PAGES')}
+              >
+                📄 Notion Pages ({notionPages.length})
+              </button>
+            </div>
+
+            {rightTab === 'DEADLINES' ? (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { id: 'UPCOMING', label: 'Upcoming' },
+                  { id: 'SELECTED_DATE', label: selectedDate.slice(5) },
+                  { id: 'DONE', label: 'Done' }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setDeadlineFilter(f.id)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      fontSize: 10.5,
+                      fontFamily: 'JetBrains Mono, monospace',
+                      border: '1px solid #262b36',
+                      background: deadlineFilter === f.id ? '#232834' : 'transparent',
+                      color: deadlineFilter === f.id ? '#ffffff' : '#9ca3af',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCreateNotionPage}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 7,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  color: '#38bdf8',
+                  cursor: 'pointer'
+                }}
+              >
+                + New Page
+              </button>
+            )}
+          </div>
+
+          {rightTab === 'DEADLINES' ? (
+            <div className="deadline-list">
+              {filteredDeadlines.length === 0 ? (
+                <div style={{ padding: 32, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+                  {deadlineFilter === 'SELECTED_DATE'
+                    ? `No deadlines scheduled on ${selectedDate}. Use the bar below the calendar to add one!`
+                    : 'All caught up! Click any date on the calendar to schedule an assignment, exam, or project milestone.'}
+                </div>
+              ) : (
+                filteredDeadlines.map((dl) => {
+                  const relLabel = getRelativeDayLabel(dl.date, todayKey);
+                  const isUrgent = dl.date <= todayKey && !dl.done;
+
+                  return (
+                    <div key={dl.id} className="deadline-row">
+                      <div className="deadline-row-left">
+                        <input
+                          type="checkbox"
+                          checked={dl.done}
+                          onChange={() => handleToggleDeadline(dl.id)}
+                          style={{ width: 16, height: 16, marginTop: 2, accentColor: '#f59e0b', cursor: 'pointer' }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            color: dl.done ? '#6b7280' : '#f3f4f6',
+                            textDecoration: dl.done ? 'line-through' : 'none',
+                            lineHeight: 1.35
+                          }}>
+                            {dl.title}
+                          </div>
+                          <div className="deadline-meta">
+                            <span className={`deadline-pill cat-${dl.category || 'LAB'}`} style={{ fontSize: 9 }}>
+                              {dl.category || 'LAB'}
+                            </span>
+                            <span>📅 {dl.date}</span>
+                            <span>• {dl.time}</span>
+                            {relLabel && (
+                              <span style={{
+                                color: isUrgent ? '#f43f5e' : '#f59e0b',
+                                fontWeight: 800
+                              }}>
+                                ({relLabel})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDeadline(dl.id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b7280',
+                          fontSize: 15,
+                          cursor: 'pointer',
+                          padding: '2px 6px'
+                        }}
+                        title="Remove deadline"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <div className="notion-pages-container">
+              <div className="notion-page-pills">
+                {notionPages.map((pg) => (
+                  <button
+                    key={pg.id}
+                    type="button"
+                    className={`notion-page-pill ${pg.id === activeNotionPage?.id ? 'active' : ''}`}
+                    onClick={() => setActivePageId(pg.id)}
+                  >
+                    {pg.title}
+                  </button>
+                ))}
+              </div>
+
+              {activeNotionPage && (
+                <div className="notion-page-editor">
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="notion-input"
+                      style={{ flex: 1, fontWeight: 700, fontSize: 13.5 }}
+                      value={activeNotionPage.title}
+                      onChange={(e) => handleUpdateActivePage('title', e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="calendar-nav-btn"
+                      onClick={handleSyncActivePageToVault}
+                      style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
+                    >
+                      Save to Vault
+                    </button>
+                  </div>
+                  {pageSaveNotice && (
+                    <span style={{ fontSize: 11, color: '#10b981', fontFamily: 'JetBrains Mono, monospace' }}>
+                      {pageSaveNotice}
+                    </span>
+                  )}
+                  <textarea
+                    className="notion-page-textarea"
+                    value={activeNotionPage.content}
+                    onChange={(e) => handleUpdateActivePage('content', e.target.value)}
+                    placeholder="Write structured Markdown notes, course checklists, or project ideas..."
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -671,7 +979,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── GitHub Contributions Calendar Heatmap (Exact Match to Screenshot) ── */}
+        {/* ── GitHub Contributions Calendar Heatmap ── */}
         <div className="gh-contrib-wrapper">
           <div>
             <div className="gh-contrib-header">
@@ -994,7 +1302,6 @@ export default function App() {
               className="tool-modal-window"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal Header */}
               <div className="tool-modal-header">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1038,7 +1345,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Modal Body: Left = What To Do Checklist | Right = Project Scratchpad Notes */}
               <div className="tool-modal-content">
                 <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 20 }}>
                   {/* Left: What To Do in This Project */}
@@ -1057,7 +1363,6 @@ export default function App() {
                       </b>
                     </div>
 
-                    {/* Add To-Do Form */}
                     <form onSubmit={handleAddProjectTodo} style={{ display: 'flex', gap: 8 }}>
                       <select
                         value={newTodoTag}
@@ -1085,7 +1390,7 @@ export default function App() {
                         type="text"
                         value={newTodoText}
                         onChange={(e) => setNewTodoText(e.target.value)}
-                        placeholder={`Add task or feature for ${selectedProject.name}...`}
+                        placeholder={`Add task or milestone for ${selectedProject.name}...`}
                         style={{
                           flex: 1,
                           padding: '9px 14px',
@@ -1115,7 +1420,6 @@ export default function App() {
                       </button>
                     </form>
 
-                    {/* To-Do Items List */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 310, overflowY: 'auto' }}>
                       {todos.length === 0 ? (
                         <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
@@ -1168,12 +1472,7 @@ export default function App() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const rName = selectedProject.name;
-                                  const rLang = selectedProject.language;
-                                  setSelectedProject(null);
-                                  handleSendMessage(`In my GitHub project "${rName}" (${rLang}), help me implement this task: "${todo.text}"`);
-                                }}
+                                onClick={() => handlePinProjectTodoToCalendar(selectedProject.name, todo)}
                                 style={{
                                   padding: '4px 8px',
                                   borderRadius: 6,
@@ -1184,8 +1483,9 @@ export default function App() {
                                   fontWeight: 600,
                                   cursor: 'pointer'
                                 }}
+                                title={`Pin to calendar on ${selectedDate}`}
                               >
-                                Ask Luna
+                                📅 Pin to Calendar
                               </button>
                               <button
                                 type="button"
@@ -1238,7 +1538,7 @@ export default function App() {
                           cursor: 'pointer'
                         }}
                       >
-                        Sync Notes to Luna Brain
+                        Save to Notes Vault
                       </button>
                     </div>
 
@@ -1263,23 +1563,7 @@ export default function App() {
                       }}
                     />
 
-                    {/* Bottom Project Shortcuts */}
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                      <button
-                        type="button"
-                        className="odysseus-pill-btn"
-                        onClick={() => {
-                          const rName = selectedProject.name;
-                          const pendingList = todos.filter(t => !t.done).map(t => t.text).join(', ');
-                          setSelectedProject(null);
-                          handleSendMessage(
-                            `Let's work on my GitHub project "${rName}". My current to-dos are: [${pendingList || 'None yet'}]. Notes: ${notes || selectedProject.description}. What should we tackle first?`
-                          );
-                        }}
-                        style={{ borderColor: 'rgba(245, 158, 11, 0.5)', color: '#f59e0b' }}
-                      >
-                        ✨ Plan Next Steps with Luna
-                      </button>
                       <button
                         type="button"
                         className="odysseus-pill-btn"
@@ -1287,6 +1571,7 @@ export default function App() {
                           setSelectedProject(null);
                           setActiveToolId('deploy_hub');
                         }}
+                        style={{ borderColor: 'rgba(245, 158, 11, 0.5)', color: '#f59e0b' }}
                       >
                         🚀 Deploy {selectedProject.name}
                       </button>
@@ -1342,17 +1627,13 @@ export default function App() {
               <ActiveToolComponent
                 authHeader={getAuthHeader}
                 githubData={githubData}
-                onAskLuna={(promptText) => {
-                  setActiveToolId(null);
-                  handleSendMessage(promptText);
-                }}
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* ── GitHub & Firebase Auth Modal ── */}
+      {/* ── GitHub Auth Modal ── */}
       {showAuth && (
         <AuthModal
           user={user}

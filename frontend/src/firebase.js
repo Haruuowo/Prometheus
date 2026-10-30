@@ -1,14 +1,11 @@
-// Firebase Authentication & Firestore configuration
+// Firebase Authentication (GitHub OAuth) & Firestore configuration
 import { initializeApp, getApps } from "firebase/app";
 import { 
   getAuth, 
   signInWithPopup, 
   linkWithPopup,
   linkWithCredential,
-  GoogleAuthProvider, 
   GithubAuthProvider,
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged 
 } from "firebase/auth";
@@ -40,7 +37,6 @@ export const isFirebaseConfigured = Boolean(
 let app = null;
 let auth = null;
 let db = null;
-let googleProvider = null;
 let githubProvider = null;
 
 if (isFirebaseConfigured) {
@@ -48,7 +44,6 @@ if (isFirebaseConfigured) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
     db = getFirestore(app);
-    googleProvider = new GoogleAuthProvider();
     githubProvider = new GithubAuthProvider();
     githubProvider.addScope('read:user');
     githubProvider.addScope('repo');
@@ -66,15 +61,11 @@ export {
   app, 
   auth, 
   db, 
-  googleProvider,
   githubProvider,
-  GoogleAuthProvider,
   GithubAuthProvider,
   signInWithPopup,
   linkWithPopup,
   linkWithCredential,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged
 };

@@ -35,7 +35,7 @@ const btnSubtle = {
 };
 
 // ── 1. Deploy & Cloud Publishing Hub (Vercel, Render, GitHub Pages, Railway) ──
-export function DeployHubToolView({ githubData, onAskLuna }) {
+export function DeployHubToolView({ githubData }) {
   const [selectedPlatform, setSelectedPlatform] = useState('vercel');
   const [selectedRepo, setSelectedRepo] = useState(
     githubData?.repos?.[0]?.name || 'Prometheus'
@@ -194,9 +194,9 @@ export function DeployHubToolView({ githubData, onAskLuna }) {
             <button
               type="button"
               style={btnSubtle}
-              onClick={() => onAskLuna(`Help me deploy my GitHub repo "${selectedRepo}" to ${active.name} step-by-step.`)}
+              onClick={copyConfig}
             >
-              Ask Luna to Guide Me
+              {copied ? '✓ Config Copied' : `Copy ${active.configName}`}
             </button>
           </div>
         </div>
@@ -232,7 +232,7 @@ export function DeployHubToolView({ githubData, onAskLuna }) {
 }
 
 // ── 2. Algorithm & Big-O Complexity Analyzer ─────────────────────────────────
-export function BigOAnalyzerToolView({ onAskLuna }) {
+export function BigOAnalyzerToolView() {
   const [code, setCode] = useState(
 `def find_duplicates(arr):
     duplicates = []
@@ -309,9 +309,12 @@ export function BigOAnalyzerToolView({ onAskLuna }) {
           <button
             type="button"
             style={btnSubtle}
-            onClick={() => onAskLuna(`Analyze the Time and Space Big-O complexity of this code and rewrite it in the most optimal way:\n\n${code}`)}
+            onClick={() => {
+              const optimized = `def find_duplicates_optimal(arr):\n    seen = set()\n    duplicates = set()\n    for x in arr:\n        if x in seen:\n            duplicates.add(x)\n        else:\n            seen.add(x)\n    return list(duplicates)`;
+              setCode(optimized);
+            }}
           >
-            Optimize with Luna &rarr;
+            Load O(n) Hash Set Example
           </button>
         </div>
       </div>
@@ -504,7 +507,7 @@ print("Index of 23:", binary_search(nums, 23))`
 }
 
 // ── 5. CS Flashcards & Technical Interview Prep ──────────────────────────────
-export function CSFlashcardsToolView({ onAskLuna }) {
+export function CSFlashcardsToolView() {
   const decks = [
     { topic: 'DSA • Hash Tables', q: 'What is the average vs. worst-case time complexity of Hash Map lookup, and how are collisions resolved?', a: 'Average: O(1). Worst-case: O(n) (or O(log n) with balanced trees). Collisions are resolved via Separate Chaining (linked lists/buckets) or Open Addressing (linear/quadratic probing).' },
     { topic: 'Operating Systems', q: 'What is the difference between a Process and a Thread?', a: 'A Process is an independent executing program with its own isolated virtual address space. A Thread is a lightweight unit of execution within a process that shares heap memory and file descriptors with peer threads.' },
@@ -563,8 +566,8 @@ export function CSFlashcardsToolView({ onAskLuna }) {
         <button type="button" style={btnGold} onClick={() => { setFlipped(false); setIdx((idx + 1) % decks.length); }}>
           Next Card &rarr;
         </button>
-        <button type="button" style={btnSubtle} onClick={() => onAskLuna(`Give me a technical interview follow-up question on: ${card.topic} (${card.q})`)}>
-          Mock Interview with Luna
+        <button type="button" style={btnSubtle} onClick={() => setFlipped(!flipped)}>
+          {flipped ? 'Hide Answer' : 'Reveal Answer'}
         </button>
       </div>
     </div>
@@ -611,7 +614,7 @@ export function GitHelperToolView() {
 }
 
 // ── 7. Second Brain Lecture Notes Vault ──────────────────────────────────────
-export function NotesToolView({ authHeader, onAskLuna }) {
+export function NotesToolView({ authHeader }) {
   const [notes, setNotes] = useState([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -628,12 +631,12 @@ export function NotesToolView({ authHeader, onAskLuna }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!content.trim()) return;
-    setStatus('Indexing lecture note...');
+    setStatus('Saving lecture note...');
     const headers = await authHeader();
     await api.ingestNote({ title: title.trim() || 'CS Lecture Note', content: content.trim() }, headers);
     setTitle('');
     setContent('');
-    setStatus('Saved to Second Brain RAG!');
+    setStatus('Saved to Second Brain Vault!');
     loadNotes();
     setTimeout(() => setStatus(''), 2200);
   };
@@ -644,7 +647,7 @@ export function NotesToolView({ authHeader, onAskLuna }) {
         <b style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>SAVE LECTURE / COURSE NOTE</b>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Course / Topic (e.g. CS301 Graph Theory)..." style={inputStyle} />
         <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Paste lecture notes, definitions, or theorems..." rows={6} style={inputStyle} />
-        <button type="submit" style={btnGold}>+ Save to Second Brain</button>
+        <button type="submit" style={btnGold}>+ Save to Notes Vault</button>
         {status && <span style={{ fontSize: 12, color: '#10b981' }}>{status}</span>}
       </form>
 
@@ -655,8 +658,8 @@ export function NotesToolView({ authHeader, onAskLuna }) {
               <b style={{ fontSize: 14, color: '#fff' }}>{n.title}</b>
               <p style={{ fontSize: 13, color: '#9ca3af', marginTop: 4 }}>{n.content}</p>
             </div>
-            <button type="button" style={btnSubtle} onClick={() => onAskLuna(`Quiz me on my lecture note "${n.title}": ${n.content}`)}>
-              Quiz Me
+            <button type="button" style={btnSubtle} onClick={() => navigator.clipboard?.writeText(`# ${n.title}\n\n${n.content}`)}>
+              Copy Markdown
             </button>
           </div>
         ))}
@@ -666,7 +669,7 @@ export function NotesToolView({ authHeader, onAskLuna }) {
 }
 
 // ── 8. Assignment, Lab & Hackathon Deadlines ─────────────────────────────────
-export function RemindersToolView({ authHeader, onAskLuna }) {
+export function RemindersToolView({ authHeader }) {
   const [reminders, setReminders] = useState([]);
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('Friday, 11:59 PM');
@@ -703,9 +706,9 @@ export function RemindersToolView({ authHeader, onAskLuna }) {
               <b style={{ fontSize: 14, color: '#fff' }}>{r.title}</b>
               <div style={{ fontSize: 12, color: '#f59e0b', marginTop: 2 }}>Due: {r.time}</div>
             </div>
-            <button type="button" style={btnSubtle} onClick={() => onAskLuna(`Help me break down a study/coding plan for "${r.title}" due ${r.time}.`)}>
-              Plan with Luna
-            </button>
+            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              TRACKED
+            </span>
           </div>
         ))}
       </div>
@@ -768,7 +771,7 @@ export const TOOL_REGISTRY = [
     name: 'Algorithm & Big-O Analyzer',
     category: 'CS FUNDAMENTALS',
     isHolidayPick: true,
-    description: 'Analyze Time & Space complexity O(n) of your code snippets, spot nested bottlenecks, and optimize with Luna.',
+    description: 'Analyze Time & Space complexity O(n) of your code snippets, spot nested bottlenecks, and inspect algorithmic tradeoffs.',
     component: BigOAnalyzerToolView
   },
   {
@@ -792,7 +795,7 @@ export const TOOL_REGISTRY = [
     name: 'DSA & Technical Interview Prep',
     category: 'INTERVIEW PREP',
     isHolidayPick: false,
-    description: 'Active-recall flashcards for Data Structures, Operating Systems, Databases (ACID), and Networks + Luna Mock Interviews.',
+    description: 'Active-recall flashcards for Data Structures, Operating Systems, Databases (ACID), and Networks.',
     component: CSFlashcardsToolView
   },
   {
@@ -808,7 +811,7 @@ export const TOOL_REGISTRY = [
     name: 'Second Brain Lecture Notes',
     category: 'STUDY & NOTES',
     isHolidayPick: false,
-    description: 'Save course notes, theorems, and study material into RAG memory so Luna can cite them and quiz you.',
+    description: 'Save course notes, theorems, and study material into your structured Markdown notes vault.',
     component: NotesToolView
   },
   {

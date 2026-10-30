@@ -143,238 +143,378 @@ button, input, textarea, select {
   background: var(--bg-card-hover);
 }
 
-/* Top Section: Luna Chatbot Console */
-.luna-console {
+/* Top Section: Notion-Style Productivity & Deadline Calendar Hub */
+.notion-workspace {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 1.25fr 1fr;
   gap: 18px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  padding: 18px;
+  padding: 20px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
-@media (max-width: 860px) {
-  .luna-console {
+@media (max-width: 980px) {
+  .notion-workspace {
     grid-template-columns: 1fr;
   }
 }
 
-/* Left Avatar & Telemetry Card inside Console */
-.luna-avatar-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+.calendar-panel {
   background: #0e1014;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  padding: 14px;
-  position: relative;
-  overflow: hidden;
-  min-height: 340px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.luna-avatar-top {
+.calendar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  z-index: 2;
-}
-
-.luna-name-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: rgba(20, 22, 27, 0.85);
-  border: 1px solid var(--border-subtle);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.luna-avatar-stage {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  my: 8px;
-}
-
-.luna-avatar-img {
-  max-height: 210px;
-  max-width: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
-  transition: transform 0.25s ease;
-}
-
-.luna-avatar-img.talking {
-  animation: lunaPulse 0.9s infinite ease-in-out;
-}
-
-@keyframes lunaPulse {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-4px) scale(1.02); }
-}
-
-.luna-pipeline-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-  z-index: 2;
-}
-
-.pipeline-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 5px 4px;
-  border-radius: 8px;
-  background: #14171d;
-  border: 1px solid #222631;
-  font-family: "JetBrains Mono", monospace;
-}
-
-.pipeline-chip.active {
-  border-color: var(--accent-gold);
-  background: var(--accent-gold-soft);
-}
-
-.pipeline-chip-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.pipeline-chip-ms {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Right Chat Area inside Console */
-.luna-chat-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 370px;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
-.luna-chat-messages {
-  flex: 1;
-  overflow-y: auto;
+.calendar-title-group {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  background: #0e1014;
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-}
-
-.chat-bubble-row {
-  display: flex;
+  align-items: center;
   gap: 10px;
-  max-width: 85%;
 }
 
-.chat-bubble-row.luna {
-  align-self: flex-start;
-}
-
-.chat-bubble-row.user {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
-.chat-bubble {
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 13.5px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.chat-bubble-row.luna .chat-bubble {
-  background: #181b22;
-  border: 1px solid #262b36;
-  color: var(--text-primary);
-  border-top-left-radius: 4px;
-}
-
-.chat-bubble-row.user .chat-bubble {
-  background: rgba(245, 158, 11, 0.14);
-  border: 1px solid var(--border-gold);
+.calendar-month-title {
+  font-size: 17px;
+  font-weight: 800;
   color: #ffffff;
-  border-top-right-radius: 4px;
+  letter-spacing: -0.01em;
 }
 
-.luna-quick-prompts {
+.calendar-nav-btns {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  align-items: center;
+  gap: 6px;
 }
 
-.quick-prompt-chip {
-  white-space: nowrap;
-  padding: 5px 11px;
-  border-radius: 999px;
+.calendar-nav-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
   background: #161920;
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   font-size: 11.5px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.quick-prompt-chip:hover {
+.calendar-nav-btn:hover {
   border-color: var(--border-gold);
+  color: #ffffff;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding-bottom: 4px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-day {
+  min-height: 74px;
+  background: #13161c;
+  border: 1px solid #1e222b;
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+.calendar-day:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: #171b22;
+}
+
+.calendar-day.muted {
+  opacity: 0.35;
+  background: #0c0e12;
+}
+
+.calendar-day.today {
+  border-color: var(--accent-cyan);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.25);
+}
+
+.calendar-day.selected {
+  border-color: var(--accent-gold);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.calendar-day-num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-day.today .calendar-day-num {
+  color: var(--accent-cyan);
+}
+
+.calendar-day.selected .calendar-day-num {
   color: var(--accent-gold);
 }
 
-.luna-chat-input-row {
+.calendar-day-events {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.luna-chat-input {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: #0e1014;
+.deadline-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid var(--accent-gold);
+  background: rgba(245, 158, 11, 0.14);
+  color: #fde68a;
+}
+
+.deadline-pill.done {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.deadline-pill.cat-EXAM {
+  border-left-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.16);
+  color: #fecdd3;
+}
+
+.deadline-pill.cat-LAB {
+  border-left-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  color: #bae6fd;
+}
+
+.deadline-pill.cat-PROJECT {
+  border-left-color: #10b981;
+  background: rgba(16, 185, 129, 0.16);
+  color: #a7f3d0;
+}
+
+.deadline-pill.cat-HACKATHON {
+  border-left-color: #a855f7;
+  background: rgba(168, 85, 247, 0.16);
+  color: #e9d5ff;
+}
+
+/* Quick Add Bar below Calendar for Selected Date */
+.calendar-quick-add {
+  display: grid;
+  grid-template-columns: 1fr 120px 115px auto;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 680px) {
+  .calendar-quick-add {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notion-input {
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #14171d;
   border: 1px solid var(--border-subtle);
   color: #ffffff;
-  font-size: 13.5px;
+  font-size: 12.5px;
   outline: none;
-  transition: border-color 0.18s;
 }
 
-.luna-chat-input:focus {
+.notion-input:focus {
   border-color: var(--accent-gold);
 }
 
-.luna-send-btn {
-  padding: 0 22px;
-  border-radius: 12px;
+.notion-gold-btn {
+  padding: 9px 15px;
+  border-radius: 9px;
   background: var(--accent-gold);
   color: #0b0c0e;
   font-weight: 800;
-  font-size: 13.5px;
+  font-size: 12.5px;
   border: none;
   cursor: pointer;
-  transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
-.luna-send-btn:hover {
-  opacity: 0.92;
+/* Right Side Panel: Deadlines Board + Notion Quick Pages */
+.notion-side-panel {
+  background: #0e1014;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 460px;
+}
+
+.notion-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.notion-tab-group {
+  display: flex;
+  gap: 6px;
+}
+
+.notion-tab-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #151820;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.notion-tab-btn.active {
+  background: var(--accent-gold-soft);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.deadline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.deadline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #14171e;
+  border: 1px solid #222631;
+  transition: border-color 0.15s;
+}
+
+.deadline-row:hover {
+  border-color: #323846;
+}
+
+.deadline-row-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.deadline-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.notion-pages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.notion-page-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.notion-page-pill {
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #151820;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notion-page-pill.active {
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.notion-page-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.notion-page-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 250px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #13161c;
+  border: 1px solid #222631;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+}
+
+.notion-page-textarea:focus {
+  border-color: var(--accent-cyan);
 }
 
 /* GitHub Student Activity Dashboard */

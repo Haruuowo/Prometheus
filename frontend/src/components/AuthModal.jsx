@@ -61,7 +61,19 @@ export default function AuthModal({ user, onClose }) {
     setError('');
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const accessToken = credential?.accessToken;
+      if (accessToken) {
+        // Send access token to backend so Luna can read Gmail directly
+        try {
+          await fetch('/api/gmail/connect-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: accessToken })
+          });
+        } catch (e) {}
+      }
       onClose();
     } catch (err) {
       setError(err.message || 'Google sign-in failed');

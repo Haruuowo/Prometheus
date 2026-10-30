@@ -13,6 +13,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify"
 ]
 
+RUNTIME_ACCESS_TOKEN: Optional[str] = None
+
 SAMPLE_EMAILS = [
     {
         "id": "msg_101",
@@ -40,6 +42,17 @@ SAMPLE_EMAILS = [
     },
 ]
 
+def set_runtime_access_token(token: str):
+    """Sets an OAuth access token received directly from Firebase Google sign-in."""
+    global RUNTIME_ACCESS_TOKEN
+    RUNTIME_ACCESS_TOKEN = token
+    try:
+        import json
+        with open(TOKEN_PATH, "w") as f:
+            json.dump({"token": token, "scopes": SCOPES}, f)
+    except Exception as e:
+        print(f"[Gmail API] Could not cache access token: {e}")
+
 def get_gmail_service():
     """Returns an authenticated Gmail API service if credentials or token exist."""
     try:
@@ -48,9 +61,22 @@ def get_gmail_service():
         from google.auth.transport.requests import Request
         from googleapiclient.discovery import build
 
+        # 1. Use runtime access token from Firebase if present
+        if RUNTIME_ACCESS_TOKEN:
+            creds = Credentials(token=RUNTIME_ACCESS_TOKEN)
+            return build("gmail", "v1", credentials=creds)
+
+        # 2. Check saved token.json
         creds = None
         if TOKEN_PATH.exists():
-            creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+            try:
+                creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+            except Exception:
+                import json
+                with open(TOKEN_PATH) as f:
+                    data = json.load(f)
+                    if "token" in data:
+                        creds = Credentials(token=data["token"])
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:

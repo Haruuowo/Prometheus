@@ -59,6 +59,10 @@ class IngestRequest(BaseModel):
     url: str = ""
 
 
+class TokenConnectRequest(BaseModel):
+    access_token: str
+
+
 class ToolApproveRequest(BaseModel):
     action_id: str
     approved: bool = True
@@ -268,6 +272,12 @@ async def brain_ingest(req: IngestRequest, user_info: dict = Depends(verify_toke
         url=req.url,
     )
     return {"ok": True, "chunks_added": len(chunks), "chunks": chunks}
+
+
+@app.post("/api/gmail/connect-token")
+async def connect_gmail_token(req: TokenConnectRequest):
+    gmail.set_runtime_access_token(req.access_token)
+    return {"ok": True, "message": "Gmail access token connected"}
 
 
 @app.get("/brain/search")

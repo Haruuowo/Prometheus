@@ -63,6 +63,11 @@ class TokenConnectRequest(BaseModel):
     access_token: str
 
 
+class InboxConnectRequest(BaseModel):
+    email: str
+    app_password: str
+
+
 class ToolApproveRequest(BaseModel):
     action_id: str
     approved: bool = True
@@ -128,10 +133,10 @@ async def process_prometheus_turn(
         traces.append({"stage": "intent", "icon": ">", "html": i_html, "ms": intent_info["ms"]})
 
         if intent_name == "gmail.summarize_inbox":
-            summary = gmail.summarize_inbox()
+            summary = gmail.summarize_inbox(uid=uid)
             tool_context = f"Inbox has {summary['unread_count']} unread messages: " + " | ".join(summary["highlights"])
         elif intent_name == "gmail.search_mail":
-            found = gmail.search_mail(params.get("query", ""))
+            found = gmail.search_mail(params.get("query", ""), uid=uid)
             tool_context = f"Found {len(found)} matching emails: " + "; ".join(
                 [f"{m['subject']} from {m['from']}" for m in found[:3]]
             )
@@ -302,11 +307,27 @@ async def tools_approve(req: ToolApproveRequest, user_info: dict = Depends(verif
 @app.get("/tools/pending")
 @app.get("/api/tools/pending")
 async def tools_pending(user_info: dict = Depends(verify_token)):
+    uid = user_info.get("uid", "kai_local")
     return {
         "pending": gmail.get_pending_approvals(),
-        "inbox": gmail.summarize_inbox(),
+        "inbox": gmail.summarize_inbox(uid=uid),
         "events": calendar.list_events(),
     }
+
+
+@app.post("/api/inbox/connect")
+async def connect_user_inbox(req: InboxConnectRequest, user_info: dict = Depends(verify_token)):
+    uid = user_info.get("uid", "kai_local")
+    gmail.connect_inbox(uid, req.email, req.app_password)
+    summary = gmail.summarize_inbox(uid=uid)
+    return {"ok": True, "summary": summary}
+
+
+@app.post("/api/inbox/disconnect")
+async def disconnect_user_inbox(user_info: dict = Depends(verify_token)):
+    uid = user_info.get("uid", "kai_local")
+    gmail.disconnect_inbox(uid)
+    return {"ok": True}
 
 
 @app.post("/memory/reset")

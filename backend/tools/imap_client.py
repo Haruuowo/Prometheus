@@ -2,7 +2,10 @@ import os
 import imaplib
 import email
 from email.header import decode_header
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+
+# Per-user runtime in-memory credential storage: { uid: { "email": str, "password": str } }
+USER_EMAIL_ACCOUNTS: Dict[str, Dict[str, str]] = {}
 
 def clean_header(val: str) -> str:
     if not val:
@@ -19,17 +22,31 @@ def clean_header(val: str) -> str:
             out.append(str(part))
     return "".join(out)
 
-def get_imap_credentials():
-    email_user = os.getenv("GMAIL_ADDRESS", "").strip()
-    app_password = os.getenv("GMAIL_APP_PASSWORD", "").strip()
-    return email_user, app_password
+def set_user_inbox_credentials(uid: str, email_address: str, app_password: str):
+    USER_EMAIL_ACCOUNTS[uid] = {
+        "email": email_address.strip(),
+        "password": app_password.strip()
+    }
 
-def is_imap_configured() -> bool:
-    user, pwd = get_imap_credentials()
-    return bool(user and pwd)
+def disconnect_user_inbox(uid: str):
+    if uid in USER_EMAIL_ACCOUNTS:
+        del USER_EMAIL_ACCOUNTS[uid]
 
-def fetch_messages_imap(max_results: int = 10) -> List[Dict[str, Any]]:
-    user, pwd = get_imap_credentials()
+def is_user_inbox_configured(uid: str) -> bool:
+    if uid in USER_EMAIL_ACCOUNTS:
+        acc = USER_EMAIL_ACCOUNTS[uid]
+        return bool(acc.get("email") and acc.get("password"))
+    # Fallback to server env if single user
+    return bool(os.getenv("GMAIL_ADDRESS") and os.getenv("GMAIL_APP_PASSWORD"))
+
+def get_user_credentials(uid: str):
+    if uid in USER_EMAIL_ACCOUNTS:
+        acc = USER_EMAIL_ACCOUNTS[uid]
+        return acc.get("email"), acc.get("password")
+    return os.getenv("GMAIL_ADDRESS", "").strip(), os.getenv("GMAIL_APP_PASSWORD", "").strip()
+
+def fetch_messages_imap(uid: str = "kai_local", max_results: int = 10) -> List[Dict[str, Any]]:
+    user, pwd = get_user_credentials(uid)
     if not user or not pwd:
         return []
 
@@ -54,8 +71,6 @@ def fetch_messages_imap(max_results: int = 10) -> List[Dict[str, Any]]:
             if res != "OK":
                 continue
 
-            raw_email = None
-            body_snippet = ""
             for response_part in data:
                 if isinstance(response_part, tuple):
                     msg_obj = email.message_from_bytes(response_part[1])
@@ -63,7 +78,7 @@ def fetch_messages_imap(max_results: int = 10) -> List[Dict[str, Any]]:
                     from_hdr = clean_header(msg_obj.get("From", "Unknown"))
                     date_hdr = clean_header(msg_obj.get("Date", "Recent"))
                     
-                    # Extract body text snippet
+                    body_snippet = ""
                     if msg_obj.is_multipart():
                         for part in msg_obj.walk():
                             ctype = part.get_content_type()
@@ -94,6 +109,6 @@ def fetch_messages_imap(max_results: int = 10) -> List[Dict[str, Any]]:
 
         mail.logout()
     except Exception as e:
-        print(f"[IMAP] Error reading Gmail: {e}")
+        print(f"[IMAP] Error reading user {uid} Gmail: {e}")
 
     return messages

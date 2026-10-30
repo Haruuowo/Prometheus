@@ -2,7 +2,12 @@ import os
 import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from backend.tools.imap_client import is_imap_configured, fetch_messages_imap
+from backend.tools.imap_client import (
+    is_user_inbox_configured,
+    fetch_messages_imap,
+    set_user_inbox_credentials,
+    disconnect_user_inbox
+)
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CREDENTIALS_PATH = ROOT_DIR / "credentials.json"
@@ -12,8 +17,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.modify"
 ]
-
-RUNTIME_ACCESS_TOKEN: Optional[str] = None
 
 SAMPLE_EMAILS = [
     {
@@ -42,90 +45,52 @@ SAMPLE_EMAILS = [
     },
 ]
 
-def set_runtime_access_token(token: str):
-    global RUNTIME_ACCESS_TOKEN
-    RUNTIME_ACCESS_TOKEN = token
-    try:
-        import json
-        with open(TOKEN_PATH, "w") as f:
-            json.dump({"token": token, "scopes": SCOPES}, f)
-    except Exception as e:
-        print(f"[Gmail API] Could not cache access token: {e}")
+def connect_inbox(uid: str, email_address: str, app_password: str):
+    set_user_inbox_credentials(uid, email_address, app_password)
 
-def get_gmail_service():
-    try:
-        from google.oauth2.credentials import Credentials
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        from google.auth.transport.requests import Request
-        from googleapiclient.discovery import build
+def disconnect_inbox(uid: str):
+    disconnect_user_inbox(uid)
 
-        if RUNTIME_ACCESS_TOKEN:
-            creds = Credentials(token=RUNTIME_ACCESS_TOKEN)
-            return build("gmail", "v1", credentials=creds)
-
-        creds = None
-        if TOKEN_PATH.exists():
-            try:
-                creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
-            except Exception:
-                import json
-                with open(TOKEN_PATH) as f:
-                    data = json.load(f)
-                    if "token" in data:
-                        creds = Credentials(token=data["token"])
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                with open(TOKEN_PATH, "w") as token:
-                    token.write(creds.to_json())
-            # Do not block background worker with run_local_server if running as server
-            # Use auth_gmail.py for the desktop prompt flow
-        if creds and creds.valid:
-            return build("gmail", "v1", credentials=creds)
-    except Exception as e:
-        pass
-    return None
-
-def fetch_live_messages(max_results: int = 10) -> List[Dict[str, Any]]:
-    # Option 1: Standard open-source IMAP (100% open source, works for anyone who clones the repo)
-    if is_imap_configured():
-        emails = fetch_messages_imap(max_results=max_results)
+def fetch_live_messages(uid: str = "kai_local", max_results: int = 10) -> List[Dict[str, Any]]:
+    # 1. Check if user configured their inbox in UI / env
+    if is_user_inbox_configured(uid):
+        emails = fetch_messages_imap(uid=uid, max_results=max_results)
         if emails:
             return emails
 
-    # Option 2: Google OAuth / token.json
-    service = get_gmail_service()
-    if service:
+    # 2. Check local OAuth token.json if present
+    if TOKEN_PATH.exists():
         try:
-            results = service.users().messages().list(userId="me", maxResults=max_results).execute()
-            messages = results.get("messages", [])
-            emails = []
-
-            for m in messages:
-                msg = service.users().messages().get(userId="me", id=m["id"], format="metadata").execute()
-                headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
-                is_unread = "UNREAD" in msg.get("labelIds", [])
-
-                emails.append({
-                    "id": m["id"],
-                    "from": headers.get("from", "Unknown Sender"),
-                    "subject": headers.get("subject", "(No Subject)"),
-                    "snippet": msg.get("snippet", ""),
-                    "date": headers.get("date", "Recent"),
-                    "unread": is_unread
-                })
-
-            if emails:
-                return emails
-        except Exception as e:
-            print(f"[Gmail API] Error: {e}")
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+            creds = Credentials.from_authorized_user_file(str(TOKEN_PATH), SCOPES)
+            if creds and creds.valid:
+                service = build("gmail", "v1", credentials=creds)
+                results = service.users().messages().list(userId="me", maxResults=max_results).execute()
+                messages = results.get("messages", [])
+                emails = []
+                for m in messages:
+                    msg = service.users().messages().get(userId="me", id=m["id"], format="metadata").execute()
+                    headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                    is_unread = "UNREAD" in msg.get("labelIds", [])
+                    emails.append({
+                        "id": m["id"],
+                        "from": headers.get("from", "Unknown Sender"),
+                        "subject": headers.get("subject", "(No Subject)"),
+                        "snippet": msg.get("snippet", ""),
+                        "date": headers.get("date", "Recent"),
+                        "unread": is_unread
+                    })
+                if emails:
+                    return emails
+        except Exception:
+            pass
 
     return SAMPLE_EMAILS
 
-def search_mail(query: str = "") -> List[Dict[str, Any]]:
+def search_mail(query: str = "", uid: str = "kai_local") -> List[Dict[str, Any]]:
     q = (query or "").strip().lower()
-    emails = fetch_live_messages(max_results=15)
+    emails = fetch_live_messages(uid=uid, max_results=15)
 
     if not q or q in ("all", "inbox", "recent", "unread"):
         if q == "unread":
@@ -140,9 +105,11 @@ def search_mail(query: str = "") -> List[Dict[str, Any]]:
             results.append(mail)
     return results or emails[:3]
 
-def summarize_inbox() -> Dict[str, Any]:
-    emails = fetch_live_messages(max_results=12)
+def summarize_inbox(uid: str = "kai_local") -> Dict[str, Any]:
+    emails = fetch_live_messages(uid=uid, max_results=12)
     unread = [m for m in emails if m.get("unread")]
+    is_live = is_user_inbox_configured(uid) or TOKEN_PATH.exists()
+
     summary_lines = [
         f"• From {m['from'].split('<')[0].strip()}: \"{m['subject']}\" — {m['snippet'][:90]}..."
         for m in unread[:4]
@@ -152,6 +119,7 @@ def summarize_inbox() -> Dict[str, Any]:
         "unread_count": len(unread),
         "highlights": summary_lines if summary_lines else ["All caught up. No unread messages."],
         "emails": emails,
+        "is_live": is_live
     }
 
 def get_pending_approvals() -> List[Dict[str, Any]]:

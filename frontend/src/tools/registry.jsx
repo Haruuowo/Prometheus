@@ -363,7 +363,7 @@ export function ReadmeBuilderToolView({ githubData }) {
     }
   };
 
-  const markdown = `# 🚀 ${projectName}
+  const markdown = `# ${projectName}
 
 > ${tagline}
 
@@ -371,13 +371,13 @@ export function ReadmeBuilderToolView({ githubData }) {
 ![License](https://img.shields.io/badge/License-MIT-f59e0b)
 ![PRs](https://img.shields.io/badge/PRs-Welcome-38bdf8)
 
-## ✨ Overview
+## Overview
 **${projectName}** is built to streamline workflows with clean architecture and responsive performance.
 
-- 🔗 **Live Demo:** [${liveUrl}](${liveUrl})
-- 🛠️ **Tech Stack:** ${techStack}
+- **Live Demo:** [${liveUrl}](${liveUrl})
+- **Tech Stack:** ${techStack}
 
-## ⚡ Quick Start
+## Quick Start
 
 \`\`\`bash
 # 1. Clone the repository
@@ -389,7 +389,7 @@ npm install
 npm run dev
 \`\`\`
 
-## 📂 Project Architecture
+## Project Architecture
 \`\`\`
 ${projectName}/
 ├── frontend/       # Client UI & components

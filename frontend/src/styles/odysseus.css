@@ -1,4 +1,4 @@
-/* Odysseus / Prometheus Clean Single-Page Workspace Styles */
+/* Odysseus Clean Single-Page & Tabbed CS Student Workspace Styles */
 
 :root {
   --bg-main: #0b0c0e;
@@ -43,23 +43,25 @@ button, input, textarea, select {
   font-family: inherit;
 }
 
-/* Main Single-Page Container */
+/* Main Workspace Container */
 .odysseus-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 28px 24px 80px;
+  padding: 28px 24px 84px;
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 32px;
 }
 
-/* Header Strip (No Navbar, just clean heading + auth pill) */
+/* Top Header & Workspace View Bar */
 .odysseus-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .odysseus-brand {
@@ -76,9 +78,9 @@ button, input, textarea, select {
 
 .odysseus-tag {
   font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-gold);
   background: var(--accent-gold-soft);
@@ -101,22 +103,88 @@ button, input, textarea, select {
   height: 7px;
   border-radius: 50%;
   background: var(--accent-green);
-  box-shadow: 0 0 8px var(--accent-green);
 }
 
 .odysseus-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.025em;
   color: #ffffff;
 }
 
 .odysseus-subtitle {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
-/* Right Header Controls */
+/* Segmented Workspace Tabs */
+.workspace-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.workspace-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #111318;
+  border: 1px solid var(--border-subtle);
+  padding: 5px;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.workspace-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.workspace-tab-btn:hover {
+  color: #ffffff;
+  background: #171a21;
+}
+
+.workspace-tab-btn.active {
+  background: #1c2029;
+  border-color: #2e3442;
+  color: #ffffff;
+}
+
+.workspace-tab-btn.project-tab.active {
+  background: var(--accent-gold-soft);
+  border-color: var(--border-gold);
+  color: var(--accent-gold);
+}
+
+.tab-count-pill {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #232732;
+  color: #cbd5e1;
+}
+
+.workspace-tab-btn.active .tab-count-pill {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-gold);
+}
+
+/* Header Action Buttons */
 .odysseus-header-actions {
   display: flex;
   align-items: center;
@@ -136,6 +204,7 @@ button, input, textarea, select {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s ease;
+  text-decoration: none;
 }
 
 .odysseus-pill-btn:hover {
@@ -143,32 +212,126 @@ button, input, textarea, select {
   background: var(--bg-card-hover);
 }
 
-/* Top Section: Notion-Style Productivity & Deadline Calendar Hub */
-.notion-workspace {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+/* Section Headers */
+.section-header-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-@media (max-width: 980px) {
-  .notion-workspace {
+.section-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+}
+
+.section-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 2px;
+}
+
+/* Overview Quick Strip (2 Clean Summary Cards) */
+.overview-summary-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 920px) {
+  .overview-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.summary-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-gold);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-link-btn:hover {
+  text-decoration: underline;
+}
+
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0e1014;
+  border: 1px solid #1e222b;
+}
+
+/* Dedicated Calendar View */
+.calendar-view-layout {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1020px) {
+  .calendar-view-layout {
     grid-template-columns: 1fr;
   }
 }
 
 .calendar-panel {
-  background: #0e1014;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .calendar-header {
@@ -182,11 +345,11 @@ button, input, textarea, select {
 .calendar-title-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .calendar-month-title {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.01em;
@@ -199,12 +362,12 @@ button, input, textarea, select {
 }
 
 .calendar-nav-btn {
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 8px;
-  background: #161920;
+  background: #171a21;
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -218,31 +381,31 @@ button, input, textarea, select {
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  text-align: center;
+  gap: 8px;
+  text-align: left;
+  padding: 0 4px 4px;
   font-family: "JetBrains Mono", monospace;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  padding-bottom: 4px;
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 8px;
 }
 
 .calendar-day {
-  min-height: 74px;
-  background: #13161c;
+  min-height: 92px;
+  background: #0e1014;
   border: 1px solid #1e222b;
   border-radius: 10px;
-  padding: 6px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   cursor: pointer;
   transition: all 0.15s ease;
   overflow: hidden;
@@ -250,27 +413,26 @@ button, input, textarea, select {
 
 .calendar-day:hover {
   border-color: rgba(245, 158, 11, 0.5);
-  background: #171b22;
+  background: #141820;
 }
 
 .calendar-day.muted {
   opacity: 0.35;
-  background: #0c0e12;
+  background: #0a0c0f;
 }
 
 .calendar-day.today {
   border-color: var(--accent-cyan);
-  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.25);
 }
 
 .calendar-day.selected {
   border-color: var(--accent-gold);
-  background: rgba(245, 158, 11, 0.08);
+  background: rgba(245, 158, 11, 0.06);
 }
 
 .calendar-day-num {
   font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-secondary);
   display: flex;
@@ -289,13 +451,13 @@ button, input, textarea, select {
 .calendar-day-events {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .deadline-pill {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -334,29 +496,15 @@ button, input, textarea, select {
   color: #e9d5ff;
 }
 
-/* Quick Add Bar below Calendar for Selected Date */
-.calendar-quick-add {
-  display: grid;
-  grid-template-columns: 1fr 120px 115px auto;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-@media (max-width: 680px) {
-  .calendar-quick-add {
-    grid-template-columns: 1fr;
-  }
-}
-
 .notion-input {
-  padding: 9px 12px;
+  padding: 10px 12px;
   border-radius: 9px;
-  background: #14171d;
-  border: 1px solid var(--border-subtle);
+  background: #0e1014;
+  border: 1px solid #262b36;
   color: #ffffff;
-  font-size: 12.5px;
+  font-size: 13px;
   outline: none;
+  width: 100%;
 }
 
 .notion-input:focus {
@@ -364,7 +512,7 @@ button, input, textarea, select {
 }
 
 .notion-gold-btn {
-  padding: 9px 15px;
+  padding: 10px 16px;
   border-radius: 9px;
   background: var(--accent-gold);
   color: #0b0c0e;
@@ -375,57 +523,22 @@ button, input, textarea, select {
   white-space: nowrap;
 }
 
-/* Right Side Panel: Deadlines Board + Notion Quick Pages */
 .notion-side-panel {
-  background: #0e1014;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 460px;
-}
-
-.notion-tabs {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.notion-tab-group {
-  display: flex;
-  gap: 6px;
-}
-
-.notion-tab-btn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: #151820;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.notion-tab-btn.active {
-  background: var(--accent-gold-soft);
-  border-color: var(--accent-gold);
-  color: var(--accent-gold);
+  gap: 16px;
 }
 
 .deadline-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 380px;
+  max-height: 460px;
   overflow-y: auto;
-  padding-right: 2px;
 }
 
 .deadline-row {
@@ -433,15 +546,15 @@ button, input, textarea, select {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 11px 13px;
+  padding: 12px 14px;
   border-radius: 10px;
-  background: #14171e;
-  border: 1px solid #222631;
+  background: #0e1014;
+  border: 1px solid #1f242e;
   transition: border-color 0.15s;
 }
 
 .deadline-row:hover {
-  border-color: #323846;
+  border-color: #2f3646;
 }
 
 .deadline-row-left {
@@ -455,74 +568,139 @@ button, input, textarea, select {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 3px;
+  margin-top: 4px;
   font-family: "JetBrains Mono", monospace;
   font-size: 10.5px;
   color: var(--text-muted);
-}
-
-.notion-pages-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-}
-
-.notion-page-pills {
-  display: flex;
-  gap: 6px;
   flex-wrap: wrap;
 }
 
-.notion-page-pill {
-  padding: 5px 10px;
-  border-radius: 8px;
-  background: #151820;
+/* Dedicated Notes Workspace View */
+.notes-workspace-layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 20px;
+  min-height: 540px;
+}
+
+@media (max-width: 880px) {
+  .notes-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notes-sidebar {
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.notion-page-pill.active {
-  border-color: var(--accent-cyan);
-  color: #ffffff;
-  background: rgba(56, 189, 248, 0.12);
-}
-
-.notion-page-editor {
+  border-radius: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
+  gap: 12px;
+}
+
+.notes-page-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0e1014;
+  border: 1px solid #1e222b;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.notes-page-item:hover {
+  border-color: #2e3442;
+  color: #ffffff;
+}
+
+.notes-page-item.active {
+  border-color: var(--accent-gold);
+  background: var(--accent-gold-soft);
+  color: #ffffff;
+}
+
+.notes-editor-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .notion-page-textarea {
   width: 100%;
   flex: 1;
-  min-height: 250px;
-  padding: 12px;
-  border-radius: 10px;
-  background: #13161c;
+  min-height: 400px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #0e1014;
   border: 1px solid #222631;
   color: var(--text-primary);
+  font-family: "JetBrains Mono", monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
   resize: vertical;
   outline: none;
 }
 
 .notion-page-textarea:focus {
-  border-color: var(--accent-cyan);
+  border-color: var(--accent-gold);
+}
+
+/* Dedicated Project Workspace View */
+.project-workspace-view {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.project-banner-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.project-workspace-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 960px) {
+  .project-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.project-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* GitHub Student Activity Dashboard */
 .github-hub {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  padding: 20px 22px;
+  border-radius: 16px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -545,8 +723,8 @@ button, input, textarea, select {
 }
 
 .github-avatar {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid var(--accent-gold);
   object-fit: cover;
@@ -594,7 +772,7 @@ button, input, textarea, select {
   border-color: var(--accent-gold);
 }
 
-/* GitHub Contributions Calendar Heatmap (Matches Screenshot) */
+/* GitHub Contributions Calendar Heatmap */
 .gh-contrib-wrapper {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 115px;
@@ -616,8 +794,8 @@ button, input, textarea, select {
 }
 
 .gh-contrib-title {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #e6edf3;
 }
 
@@ -629,7 +807,7 @@ button, input, textarea, select {
 .gh-contrib-box {
   background: #0d1117;
   border: 1px solid #21262d;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 16px 18px 12px;
   overflow-x: auto;
 }
@@ -732,78 +910,11 @@ button, input, textarea, select {
   font-weight: 600;
 }
 
-.github-hub-grid {
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: 18px;
-}
-
-@media (max-width: 920px) {
-  .github-hub-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.github-activity-box {
-  background: #0e1014;
-  border: 1px solid #222630;
-  border-radius: 14px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.github-event-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  background: #14171d;
-  border: 1px solid #1f232d;
-  font-size: 12.5px;
-}
-
-.github-event-badge {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 9.5px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--accent-gold-soft);
-  color: var(--accent-gold);
-  border: 1px solid var(--border-gold);
-  flex-shrink: 0;
-}
-
-.github-repos-mini-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 12px;
-}
-
-.github-repo-card {
-  background: #0e1014;
-  border: 1px solid #222630;
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-  transition: border-color 0.15s;
-}
-
-.github-repo-card:hover {
-  border-color: var(--border-gold);
-}
-
-/* Tool Cards Grid Section (Matches uploaded screenshot media_1793371803184_73caee83.jpg) */
+/* Tool & Project Cards Grid Section (Clean 3-Column Odysseus Aesthetic) */
 .tools-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .tools-filter-bar {
@@ -824,7 +935,7 @@ button, input, textarea, select {
   padding: 7px 14px;
   border-radius: 999px;
   font-family: "JetBrains Mono", monospace;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   background: var(--bg-card);
@@ -860,7 +971,7 @@ button, input, textarea, select {
   border-color: var(--accent-gold);
 }
 
-/* 3-Column Card Grid matching screenshot */
+/* 3-Column Card Grid */
 .odysseus-cards-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -897,9 +1008,9 @@ button, input, textarea, select {
 }
 
 .odysseus-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: rgba(245, 158, 11, 0.75);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 
 .odysseus-card-top {
@@ -910,9 +1021,9 @@ button, input, textarea, select {
 }
 
 .odysseus-card-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: #1b1d24;
   border: 1px solid #2b2f3a;
   display: flex;
@@ -965,8 +1076,11 @@ button, input, textarea, select {
 }
 
 .badge-ready-dot {
-  color: #60a5fa;
-  font-size: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #60a5fa;
+  display: inline-block;
 }
 
 .odysseus-card-body {
@@ -975,7 +1089,7 @@ button, input, textarea, select {
 }
 
 .odysseus-card-title {
-  font-size: 18px;
+  font-size: 17.5px;
   font-weight: 700;
   color: #ffffff;
   margin-bottom: 6px;
@@ -994,19 +1108,21 @@ button, input, textarea, select {
   justify-content: space-between;
   padding-top: 14px;
   border-top: 1px solid #1e212a;
+  gap: 8px;
 }
 
 .odysseus-card-category {
   font-family: "JetBrains Mono", monospace;
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: #68707e;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .odysseus-card-open {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #ffffff;
   display: inline-flex;
@@ -1015,6 +1131,7 @@ button, input, textarea, select {
   background: none;
   border: none;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .odysseus-card.holiday-pick .odysseus-card-open {
@@ -1061,4 +1178,3 @@ button, input, textarea, select {
   overflow-y: auto;
   padding: 22px;
 }
-

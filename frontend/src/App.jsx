@@ -13,13 +13,23 @@ const MOODS = {
   surprised:  { color: '#38bdf8', label: 'surprised' },
 };
 
-const DEFAULT_PROMPT = `You are Luna, the autonomous AI core of the Odysseus / Prometheus personal workspace.
-You are sharp, witty, concise, and helpful. You assist with Second Brain notes, web research, reminders, coding, and creative tools.`;
+const DEFAULT_PROMPT = `You are Luna, the AI CS companion and engineering mentor inside the Odysseus Student Workspace.
+You help Computer Science students understand algorithms & Big-O complexity, debug code, deploy apps (Vercel, Render, Railway, GitHub Pages), write great READMEs, and recall their Second Brain lecture notes. Keep responses concise, practical, and encouraging.`;
 
 export default function App() {
   // User & Auth
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
+
+  // Connected GitHub Student Profile
+  const [githubUsername, setGithubUsername] = useState(
+    localStorage.getItem('odysseus_github_user') || 'Haruuowo'
+  );
+  const [githubInput, setGithubInput] = useState(
+    localStorage.getItem('odysseus_github_user') || 'Haruuowo'
+  );
+  const [githubData, setGithubData] = useState(null);
+  const [githubLoading, setGithubLoading] = useState(false);
 
   // Active Tool Modal (null = viewing main page)
   const [activeToolId, setActiveToolId] = useState(null);
@@ -42,12 +52,32 @@ export default function App() {
     {
       id: 1,
       user: 'Luna',
-      text: "Odysseus Core online. Chat with me right here or scroll down to launch any tool from the workspace.",
+      text: "Hey! Your GitHub activity and CS Student tools are synced. Ask me to analyze Big-O complexity, help deploy your repos to Vercel/Render, or open any tool below!",
     }
   ]);
 
   const chatEndRef = useRef(null);
   const wsRef = useRef(null);
+
+  // Fetch GitHub Overview & Activity
+  const fetchGithubProfile = async (targetUser) => {
+    const cleanUser = (targetUser || 'Haruuowo').trim();
+    setGithubLoading(true);
+    try {
+      const res = await fetch(`/api/github/overview?user=${encodeURIComponent(cleanUser)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setGithubData(data);
+        setGithubUsername(data.username || cleanUser);
+        try { localStorage.setItem('odysseus_github_user', data.username || cleanUser); } catch (e) {}
+      }
+    } catch (e) {}
+    setGithubLoading(false);
+  };
+
+  useEffect(() => {
+    fetchGithubProfile(githubUsername);
+  }, []);
 
   // Firebase Auth Listener
   useEffect(() => {
@@ -145,22 +175,26 @@ export default function App() {
     setThinking(true);
     pulseNode('route');
 
-    // Auto-open tool if user explicitly asks to open one
+    // Auto-open CS student tools when requested
     const lower = text.toLowerCase();
-    if (lower.includes('open background remover') || lower.includes('remove background')) {
-      setActiveToolId('bg_remover');
-    } else if (lower.includes('open resizer') || lower.includes('resize image')) {
-      setActiveToolId('img_resizer');
-    } else if (lower.includes('open second brain') || lower.includes('open notes')) {
-      setActiveToolId('brain');
-    } else if (lower.includes('open reminders')) {
-      setActiveToolId('reminders');
-    } else if (lower.includes('open github')) {
-      setActiveToolId('github');
+    if (lower.includes('open deploy') || lower.includes('vercel') || lower.includes('where to publish')) {
+      setActiveToolId('deploy_hub');
+    } else if (lower.includes('open big-o') || lower.includes('analyze complexity')) {
+      setActiveToolId('bigo_analyzer');
+    } else if (lower.includes('open readme') || lower.includes('generate readme')) {
+      setActiveToolId('readme_builder');
+    } else if (lower.includes('open sandbox') || lower.includes('run python')) {
+      setActiveToolId('sandbox');
+    } else if (lower.includes('flashcard') || lower.includes('interview prep')) {
+      setActiveToolId('cs_flashcards');
     }
 
     try {
       const authHeaders = await getAuthHeader();
+      const ghSummary = githubData
+        ? `\n[Student GitHub Context: @${githubData.username}, ${githubData.public_repos} public repos, top repos: ${(githubData.repos || []).slice(0, 4).map(r => `${r.name} (${r.language})`).join(', ')}]`
+        : '';
+
       const res = await fetch('/chat', {
         method: 'POST',
         headers: { ...authHeaders, 'Content-Type': 'application/json' },
@@ -168,7 +202,7 @@ export default function App() {
           message: text,
           user: senderName,
           platform: 'Console',
-          system_prompt: DEFAULT_PROMPT,
+          system_prompt: DEFAULT_PROMPT + ghSummary,
           temperature: 0.75
         })
       });
@@ -191,7 +225,7 @@ export default function App() {
       setThinking(false);
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + Math.random(), user: 'Luna', text: "I'm right here! Pick any tool below or tell me what we're working on." }
+        { id: Date.now() + Math.random(), user: 'Luna', text: "I'm right here! Pick any CS tool below or ask me about your repos." }
       ]);
     }
   };
@@ -202,12 +236,22 @@ export default function App() {
       await fetch('/memory/reset', { method: 'POST', headers });
     } catch (e) {}
     setMessages([
-      { id: Date.now(), user: 'Luna', text: 'Conversation history cleared! Your Second Brain notes are safe.' }
+      { id: Date.now(), user: 'Luna', text: 'Conversation history cleared! Your Second Brain lecture notes are safe.' }
     ]);
   };
 
   // Filter tools for the grid
-  const categories = ['ALL', 'PHOTO & IMAGE', 'AI & KNOWLEDGE', 'PRODUCTIVITY', 'DEVELOPER'];
+  const categories = [
+    'ALL',
+    'DEPLOY & HOSTING',
+    'CS FUNDAMENTALS',
+    'GITHUB & CAREER',
+    'CODE & LABS',
+    'INTERVIEW PREP',
+    'STUDY & NOTES',
+    'PRODUCTIVITY'
+  ];
+
   const filteredTools = TOOL_REGISTRY.filter((t) => {
     const matchCat = selectedCategory === 'ALL' || t.category === selectedCategory;
     const matchSearch =
@@ -224,23 +268,31 @@ export default function App() {
 
   return (
     <div className="odysseus-page">
-      {/* ── Top Heading Strip (No Navbar) ── */}
+      {/* ── Top Heading Strip ── */}
       <header className="odysseus-header">
         <div className="odysseus-brand">
           <div className="odysseus-brand-top">
-            <span className="odysseus-tag">ODYSSEUS // PROMETHEUS</span>
+            <span className="odysseus-tag">ODYSSEUS // CS STUDENT HUB</span>
             <span className="odysseus-status">
               <span className="odysseus-status-dot" />
-              LUNA CORE ONLINE
+              GITHUB & LUNA SYNCED
             </span>
           </div>
-          <h1 className="odysseus-title">Personal AI Workspace</h1>
+          <h1 className="odysseus-title">Computer Science Workspace</h1>
           <p className="odysseus-subtitle">
-            Talk with Luna above or launch any standalone utility below.
+            Connect your GitHub, track your coding activity, deploy your projects, and study with Luna.
           </p>
         </div>
 
         <div className="odysseus-header-actions">
+          <button
+            type="button"
+            className="odysseus-pill-btn"
+            onClick={() => setActiveToolId('deploy_hub')}
+            style={{ borderColor: 'rgba(245, 158, 11, 0.5)', color: '#f59e0b' }}
+          >
+            🚀 Publish / Deploy Site
+          </button>
           <button
             type="button"
             className="odysseus-pill-btn"
@@ -265,7 +317,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── Section 1: Luna AI Chatbot Console ── */}
+      {/* ── Section 1: Luna AI CS Companion Console ── */}
       <section className="luna-console">
         {/* Left: Luna Avatar + Telemetry */}
         <div className="luna-avatar-panel">
@@ -345,19 +397,19 @@ export default function App() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Quick Prompt Chips */}
+          {/* CS Student Quick Prompts */}
           <div className="luna-quick-prompts">
-            <button type="button" className="quick-prompt-chip" onClick={() => handleSendMessage('Check my GitHub repos for Haruuowo')}>
-              GitHub Repos
+            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('deploy_hub')}>
+              🚀 Where to host my site (Vercel/Render)?
             </button>
-            <button type="button" className="quick-prompt-chip" onClick={() => handleSendMessage('What is in my Second Brain notes?')}>
-              Recall Second Brain
+            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('bigo_analyzer')}>
+              ⚡ Analyze Big-O Complexity
             </button>
-            <button type="button" className="quick-prompt-chip" onClick={() => handleSendMessage('Show my upcoming schedule & reminders')}>
-              Upcoming Schedule
+            <button type="button" className="quick-prompt-chip" onClick={() => handleSendMessage(`Review my GitHub repositories for @${githubUsername} and suggest what to improve for my CS portfolio.`)}>
+              🐙 Review My GitHub Portfolio
             </button>
-            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('bg_remover')}>
-              Open Background Remover
+            <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('cs_flashcards')}>
+              📚 DSA Interview Flashcards
             </button>
           </div>
 
@@ -374,7 +426,7 @@ export default function App() {
               className="luna-chat-input"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask Luna anything, search your Second Brain, or command a tool..."
+              placeholder="Ask Luna to debug code, explain an algorithm, or help deploy your project..."
             />
             <button type="submit" className="luna-send-btn" disabled={thinking}>
               Send &rarr;
@@ -383,7 +435,159 @@ export default function App() {
         </div>
       </section>
 
-      {/* ── Section 2: Tool Cards Grid (Matches Screenshot) ── */}
+      {/* ── Section 2: Connected GitHub Student Activity & Repositories ── */}
+      <section className="github-hub">
+        <div className="github-hub-top">
+          <div className="github-profile-row">
+            {githubData?.avatar_url && (
+              <img src={githubData.avatar_url} alt={githubUsername} className="github-avatar" />
+            )}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <b style={{ fontSize: 18, color: '#ffffff' }}>@{githubData?.username || githubUsername}</b>
+                <a
+                  href={`https://github.com/${githubData?.username || githubUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 11.5, color: '#f59e0b', textDecoration: 'none', fontFamily: 'JetBrains Mono, monospace' }}
+                >
+                  [View GitHub Profile &rarr;]
+                </a>
+              </div>
+              <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 2 }}>
+                {githubData?.bio || 'Computer Science Student • Active Repositories & Commit Stream'}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats & Connect Any GitHub Username */}
+          <div className="github-stats-row">
+            <div className="github-stat-pill">
+              Repos: <b>{githubData?.public_repos ?? 0}</b>
+            </div>
+            <div className="github-stat-pill">
+              Stars: <b>★ {githubData?.total_stars ?? 0}</b>
+            </div>
+            <div className="github-stat-pill">
+              Followers: <b>{githubData?.followers ?? 0}</b>
+            </div>
+
+            <form
+              className="github-connect-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                fetchGithubProfile(githubInput);
+              }}
+            >
+              <input
+                type="text"
+                className="github-connect-input"
+                value={githubInput}
+                onChange={(e) => setGithubInput(e.target.value)}
+                placeholder="GitHub username..."
+              />
+              <button type="submit" className="odysseus-pill-btn" disabled={githubLoading}>
+                {githubLoading ? 'Syncing...' : 'Connect GitHub'}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Left: Live Activity Feed | Right: Student Repos with Deploy & README actions */}
+        <div className="github-hub-grid">
+          <div className="github-activity-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <b style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
+                RECENT GITHUB ACTIVITY
+              </b>
+              <span style={{ fontSize: 11, color: '#10b981', fontFamily: 'JetBrains Mono, monospace' }}>● LIVE FEED</span>
+            </div>
+
+            {(githubData?.events || []).map((ev, i) => (
+              <div key={ev.id || i} className="github-event-item">
+                <span className="github-event-badge">{ev.badge}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#e5e7eb', lineHeight: 1.4, wordBreak: 'break-word' }}>{ev.text}</div>
+                  <div style={{ fontSize: 10.5, color: '#6b7280', marginTop: 2 }}>{ev.date}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <b style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'JetBrains Mono, monospace' }}>
+                YOUR REPOSITORIES ({githubData?.repos?.length || 0})
+              </b>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(githubData?.top_languages || []).slice(0, 4).map((l) => (
+                  <span
+                    key={l.name}
+                    style={{
+                      fontSize: 10.5,
+                      fontFamily: 'JetBrains Mono, monospace',
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background: '#161920',
+                      border: '1px solid #262b36',
+                      color: '#cbd5e1'
+                    }}
+                  >
+                    {l.name} ({l.count})
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="github-repos-mini-grid">
+              {(githubData?.repos || []).slice(0, 6).map((repo) => (
+                <div key={repo.id || repo.name} className="github-repo-card">
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                      <a
+                        href={repo.html_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ fontSize: 14, fontWeight: 700, color: '#ffffff', textDecoration: 'none' }}
+                      >
+                        {repo.name}
+                      </a>
+                      <span style={{ fontSize: 10.5, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
+                        {repo.language}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: '#8e96a4', marginTop: 5, lineHeight: 1.4 }}>
+                      {repo.description}
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid #1b1f28' }}>
+                    <span style={{ fontSize: 11, color: '#6b7280' }}>★ {repo.stars} • {repo.updated_at}</span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveToolId('readme_builder')}
+                        style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        README
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveToolId('deploy_hub')}
+                        style={{ background: 'none', border: 'none', color: '#f59e0b', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Deploy &rarr;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 3: CS Student Tool Cards Grid (Odysseus Style) ── */}
       <section className="tools-section">
         <div className="tools-filter-bar">
           <div className="tools-categories">
@@ -404,7 +608,7 @@ export default function App() {
             className="tools-search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter tools..."
+            placeholder="Search CS tools (e.g. Vercel, Big-O, README, Git)..."
           />
         </div>
 
@@ -421,16 +625,15 @@ export default function App() {
                 <div className="odysseus-card-top">
                   <div className="odysseus-card-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
                     </svg>
                   </div>
 
                   <div className="odysseus-card-badges">
                     {tool.isHolidayPick && (
                       <span className="badge-holiday">
-                        <span>🎁</span> HOLIDAY PICK
+                        <span>★</span> STUDENT PICK
                       </span>
                     )}
                     <span className="badge-ready">
@@ -497,6 +700,7 @@ export default function App() {
             <div className="tool-modal-content">
               <ActiveToolComponent
                 authHeader={getAuthHeader}
+                githubData={githubData}
                 onAskLuna={(promptText) => {
                   setActiveToolId(null);
                   handleSendMessage(promptText);

@@ -377,6 +377,150 @@ button, input, textarea, select {
   opacity: 0.92;
 }
 
+/* GitHub Student Activity Dashboard */
+.github-hub {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.github-hub-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.github-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.github-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-gold);
+  object-fit: cover;
+}
+
+.github-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.github-stat-pill {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #0e1014;
+  border: 1px solid #232730;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.github-stat-pill b {
+  color: #ffffff;
+}
+
+.github-connect-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.github-connect-input {
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: #0e1014;
+  border: 1px solid #2b303c;
+  color: #ffffff;
+  font-size: 12.5px;
+  width: 170px;
+  outline: none;
+}
+
+.github-connect-input:focus {
+  border-color: var(--accent-gold);
+}
+
+.github-hub-grid {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 920px) {
+  .github-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.github-activity-box {
+  background: #0e1014;
+  border: 1px solid #222630;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.github-event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: #14171d;
+  border: 1px solid #1f232d;
+  font-size: 12.5px;
+}
+
+.github-event-badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent-gold-soft);
+  color: var(--accent-gold);
+  border: 1px solid var(--border-gold);
+  flex-shrink: 0;
+}
+
+.github-repos-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.github-repo-card {
+  background: #0e1014;
+  border: 1px solid #222630;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+
+.github-repo-card:hover {
+  border-color: var(--border-gold);
+}
+
 /* Tool Cards Grid Section (Matches uploaded screenshot media_1793371803184_73caee83.jpg) */
 .tools-section {
   display: flex;
@@ -639,3 +783,4 @@ button, input, textarea, select {
   overflow-y: auto;
   padding: 22px;
 }
+

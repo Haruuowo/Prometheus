@@ -1,8 +1,8 @@
 import os
 import time
-import base64
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+from backend.tools.imap_client import is_imap_configured, fetch_messages_imap
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CREDENTIALS_PATH = ROOT_DIR / "credentials.json"
@@ -43,7 +43,6 @@ SAMPLE_EMAILS = [
 ]
 
 def set_runtime_access_token(token: str):
-    """Sets an OAuth access token received directly from Firebase Google sign-in."""
     global RUNTIME_ACCESS_TOKEN
     RUNTIME_ACCESS_TOKEN = token
     try:
@@ -54,19 +53,16 @@ def set_runtime_access_token(token: str):
         print(f"[Gmail API] Could not cache access token: {e}")
 
 def get_gmail_service():
-    """Returns an authenticated Gmail API service if credentials or token exist."""
     try:
         from google.oauth2.credentials import Credentials
         from google_auth_oauthlib.flow import InstalledAppFlow
         from google.auth.transport.requests import Request
         from googleapiclient.discovery import build
 
-        # 1. Use runtime access token from Firebase if present
         if RUNTIME_ACCESS_TOKEN:
             creds = Credentials(token=RUNTIME_ACCESS_TOKEN)
             return build("gmail", "v1", credentials=creds)
 
-        # 2. Check saved token.json
         creds = None
         if TOKEN_PATH.exists():
             try:
@@ -92,41 +88,46 @@ def get_gmail_service():
         if creds:
             return build("gmail", "v1", credentials=creds)
     except Exception as e:
-        print(f"[Gmail API] Auth note: {e}")
+        pass
     return None
 
 def fetch_live_messages(max_results: int = 10) -> List[Dict[str, Any]]:
-    """Fetches real messages from user's Gmail if authenticated."""
+    # Option 1: Standard open-source IMAP (100% open source, works for anyone who clones the repo)
+    if is_imap_configured():
+        emails = fetch_messages_imap(max_results=max_results)
+        if emails:
+            return emails
+
+    # Option 2: Google OAuth / token.json
     service = get_gmail_service()
-    if not service:
-        return SAMPLE_EMAILS
+    if service:
+        try:
+            results = service.users().messages().list(userId="me", maxResults=max_results).execute()
+            messages = results.get("messages", [])
+            emails = []
 
-    try:
-        results = service.users().messages().list(userId="me", maxResults=max_results).execute()
-        messages = results.get("messages", [])
-        emails = []
+            for m in messages:
+                msg = service.users().messages().get(userId="me", id=m["id"], format="metadata").execute()
+                headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                is_unread = "UNREAD" in msg.get("labelIds", [])
 
-        for m in messages:
-            msg = service.users().messages().get(userId="me", id=m["id"], format="metadata").execute()
-            headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
-            is_unread = "UNREAD" in msg.get("labelIds", [])
+                emails.append({
+                    "id": m["id"],
+                    "from": headers.get("from", "Unknown Sender"),
+                    "subject": headers.get("subject", "(No Subject)"),
+                    "snippet": msg.get("snippet", ""),
+                    "date": headers.get("date", "Recent"),
+                    "unread": is_unread
+                })
 
-            emails.append({
-                "id": m["id"],
-                "from": headers.get("from", "Unknown Sender"),
-                "subject": headers.get("subject", "(No Subject)"),
-                "snippet": msg.get("snippet", ""),
-                "date": headers.get("date", "Recent"),
-                "unread": is_unread
-            })
+            if emails:
+                return emails
+        except Exception as e:
+            print(f"[Gmail API] Error: {e}")
 
-        return emails if emails else SAMPLE_EMAILS
-    except Exception as e:
-        print(f"[Gmail API] Error fetching messages: {e}")
-        return SAMPLE_EMAILS
+    return SAMPLE_EMAILS
 
 def search_mail(query: str = "") -> List[Dict[str, Any]]:
-    """Search messages in inbox (live Gmail or sample)."""
     q = (query or "").strip().lower()
     emails = fetch_live_messages(max_results=15)
 
@@ -144,7 +145,6 @@ def search_mail(query: str = "") -> List[Dict[str, Any]]:
     return results or emails[:3]
 
 def summarize_inbox() -> Dict[str, Any]:
-    """Summarize unread messages."""
     emails = fetch_live_messages(max_results=12)
     unread = [m for m in emails if m.get("unread")]
     summary_lines = [

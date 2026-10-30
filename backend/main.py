@@ -472,8 +472,8 @@ async def disconnect_user_inbox(user_info: dict = Depends(verify_token)):
 
 
 @app.get("/api/github/overview")
-async def api_github_overview(user: str = Query(default="Haruuowo")):
-    data = github_tool.get_user_overview(user)
+async def api_github_overview(user: str = Query(default="Haruuowo"), year: str = Query(default="last")):
+    data = github_tool.get_user_overview(user, year)
     return data
 
 

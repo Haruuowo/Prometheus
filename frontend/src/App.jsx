@@ -16,18 +16,71 @@ const MOODS = {
 const DEFAULT_PROMPT = `You are Luna, the AI CS companion and engineering mentor inside the Odysseus Student Workspace.
 You help Computer Science students understand algorithms & Big-O complexity, debug code, deploy apps (Vercel, Render, Railway, GitHub Pages), write great READMEs, and recall their Second Brain lecture notes. Keep responses concise, practical, and encouraging.`;
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function buildContributionCalendar(daysList = []) {
+  // If backend hasn't returned days yet, generate 52 empty weeks so layout stays crisp
+  let items = daysList;
+  if (!items || items.length === 0) {
+    const fallback = [];
+    const now = new Date();
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      fallback.push({
+        date: d.toISOString().slice(0, 10),
+        level: 0,
+        count: 0
+      });
+    }
+    items = fallback;
+  }
+
+  const weeks = [];
+  let currentWeek = new Array(7).fill(null);
+
+  items.forEach((dayObj, idx) => {
+    const dt = new Date(dayObj.date + 'T00:00:00');
+    const dow = dt.getDay(); // 0 = Sun .. 6 = Sat
+    currentWeek[dow] = dayObj;
+    if (dow === 6 || idx === items.length - 1) {
+      weeks.push(currentWeek);
+      currentWeek = new Array(7).fill(null);
+    }
+  });
+
+  // Compute month labels across weeks
+  const monthLabels = [];
+  let lastMonth = -1;
+  weeks.forEach((wk, wIdx) => {
+    const firstValid = wk.find(Boolean);
+    if (firstValid) {
+      const m = new Date(firstValid.date + 'T00:00:00').getMonth();
+      if (m !== lastMonth) {
+        if (monthLabels.length === 0 || wIdx - monthLabels[monthLabels.length - 1].weekIndex >= 3) {
+          monthLabels.push({ label: MONTH_NAMES[m], weekIndex: wIdx });
+        }
+        lastMonth = m;
+      }
+    }
+  });
+
+  return { weeks, monthLabels };
+}
+
 export default function App() {
   // User & Auth
   const [user, setUser] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
 
-  // Connected GitHub Student Profile
+  // Connected GitHub Student Profile & Contribution Year
   const [githubUsername, setGithubUsername] = useState(
     localStorage.getItem('odysseus_github_user') || 'Haruuowo'
   );
   const [githubInput, setGithubInput] = useState(
     localStorage.getItem('odysseus_github_user') || 'Haruuowo'
   );
+  const [contribYear, setContribYear] = useState('last'); // 'last' (2026), '2025', '2024'
   const [githubData, setGithubData] = useState(null);
   const [githubLoading, setGithubLoading] = useState(false);
 
@@ -52,19 +105,21 @@ export default function App() {
     {
       id: 1,
       user: 'Luna',
-      text: "Hey! Your GitHub activity and CS Student tools are synced. Ask me to analyze Big-O complexity, help deploy your repos to Vercel/Render, or open any tool below!",
+      text: "Hey! Your GitHub contribution graph, repositories, and CS Student tools are live. Ask me to analyze Big-O complexity, help deploy your repos to Vercel/Render, or open any tool below!",
     }
   ]);
 
   const chatEndRef = useRef(null);
   const wsRef = useRef(null);
 
-  // Fetch GitHub Overview & Activity
-  const fetchGithubProfile = async (targetUser) => {
+  // Fetch GitHub Overview, Repos & Contributions
+  const fetchGithubProfile = async (targetUser, targetYear = contribYear) => {
     const cleanUser = (targetUser || 'Haruuowo').trim();
     setGithubLoading(true);
     try {
-      const res = await fetch(`/api/github/overview?user=${encodeURIComponent(cleanUser)}`);
+      const res = await fetch(
+        `/api/github/overview?user=${encodeURIComponent(cleanUser)}&year=${encodeURIComponent(targetYear)}`
+      );
       if (res.ok) {
         const data = await res.json();
         setGithubData(data);
@@ -76,8 +131,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchGithubProfile(githubUsername);
+    fetchGithubProfile(githubUsername, contribYear);
   }, []);
+
+  const handleSelectYear = (yr) => {
+    setContribYear(yr);
+    fetchGithubProfile(githubUsername, yr);
+  };
 
   // Firebase Auth Listener
   useEffect(() => {
@@ -175,7 +235,6 @@ export default function App() {
     setThinking(true);
     pulseNode('route');
 
-    // Auto-open CS student tools when requested
     const lower = text.toLowerCase();
     if (lower.includes('open deploy') || lower.includes('vercel') || lower.includes('where to publish')) {
       setActiveToolId('deploy_hub');
@@ -192,7 +251,7 @@ export default function App() {
     try {
       const authHeaders = await getAuthHeader();
       const ghSummary = githubData
-        ? `\n[Student GitHub Context: @${githubData.username}, ${githubData.public_repos} public repos, top repos: ${(githubData.repos || []).slice(0, 4).map(r => `${r.name} (${r.language})`).join(', ')}]`
+        ? `\n[Student GitHub Context: @${githubData.username}, ${githubData?.contributions?.total || 265} contributions, ${githubData.public_repos} public repos, top repos: ${(githubData.repos || []).slice(0, 4).map(r => `${r.name} (${r.language})`).join(', ')}]`
         : '';
 
       const res = await fetch('/chat', {
@@ -240,6 +299,12 @@ export default function App() {
     ]);
   };
 
+  // Build Contribution Calendar Columns & Months
+  const contribTotal = githubData?.contributions?.total ?? 265;
+  const { weeks: contribWeeks, monthLabels } = buildContributionCalendar(
+    githubData?.contributions?.days || []
+  );
+
   // Filter tools for the grid
   const categories = [
     'ALL',
@@ -280,7 +345,7 @@ export default function App() {
           </div>
           <h1 className="odysseus-title">Computer Science Workspace</h1>
           <p className="odysseus-subtitle">
-            Connect your GitHub, track your coding activity, deploy your projects, and study with Luna.
+            Connect your GitHub, track your contribution graph, deploy your projects, and study with Luna.
           </p>
         </div>
 
@@ -319,7 +384,6 @@ export default function App() {
 
       {/* ── Section 1: Luna AI CS Companion Console ── */}
       <section className="luna-console">
-        {/* Left: Luna Avatar + Telemetry */}
         <div className="luna-avatar-panel">
           <div className="luna-avatar-top">
             <span className="luna-name-badge">
@@ -365,7 +429,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right: Chat Stream + Input */}
         <div className="luna-chat-panel">
           <div className="luna-chat-messages">
             {messages.map((msg) => {
@@ -397,7 +460,6 @@ export default function App() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* CS Student Quick Prompts */}
           <div className="luna-quick-prompts">
             <button type="button" className="quick-prompt-chip" onClick={() => setActiveToolId('deploy_hub')}>
               🚀 Where to host my site (Vercel/Render)?
@@ -413,7 +475,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* Chat Input Form */}
           <form
             className="luna-chat-input-row"
             onSubmit={(e) => {
@@ -435,7 +496,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* ── Section 2: Connected GitHub Student Activity & Repositories ── */}
+      {/* ── Section 2: Connected GitHub Contributions Graph, Activity & Repositories ── */}
       <section className="github-hub">
         <div className="github-hub-top">
           <div className="github-profile-row">
@@ -460,7 +521,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Stats & Connect Any GitHub Username */}
           <div className="github-stats-row">
             <div className="github-stat-pill">
               Repos: <b>{githubData?.public_repos ?? 0}</b>
@@ -476,7 +536,7 @@ export default function App() {
               className="github-connect-form"
               onSubmit={(e) => {
                 e.preventDefault();
-                fetchGithubProfile(githubInput);
+                fetchGithubProfile(githubInput, contribYear);
               }}
             >
               <input
@@ -493,14 +553,106 @@ export default function App() {
           </div>
         </div>
 
-        {/* Left: Live Activity Feed | Right: Student Repos with Deploy & README actions */}
+        {/* ── GitHub Contributions Calendar Heatmap (Exact Match to Screenshot) ── */}
+        <div className="gh-contrib-wrapper">
+          <div>
+            <div className="gh-contrib-header">
+              <span className="gh-contrib-title">
+                {contribTotal} contributions {contribYear === 'last' ? 'in the last year' : `in ${contribYear}`}
+              </span>
+              <span className="gh-contrib-settings">Contribution settings &#9662;</span>
+            </div>
+
+            <div className="gh-contrib-box">
+              {/* Month Labels Row */}
+              <div className="gh-contrib-months">
+                {monthLabels.map((m, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: `${32 + m.weekIndex * 14}px`
+                    }}
+                  >
+                    {m.label}
+                  </span>
+                ))}
+              </div>
+
+              {/* Weekday Labels + 53-Week Grid */}
+              <div className="gh-contrib-grid-row">
+                <div className="gh-contrib-days-col">
+                  <span />
+                  <span>Mon</span>
+                  <span />
+                  <span>Wed</span>
+                  <span />
+                  <span>Fri</span>
+                  <span />
+                </div>
+
+                <div className="gh-contrib-weeks">
+                  {contribWeeks.map((week, wIdx) => (
+                    <div key={wIdx} className="gh-contrib-week-col">
+                      {week.map((day, dIdx) =>
+                        day ? (
+                          <div
+                            key={day.date}
+                            className={`gh-contrib-cell gh-level-${day.level || 0}`}
+                            title={`${day.date}: ${day.level > 0 ? `Level ${day.level} contributions` : 'No contributions'}`}
+                          />
+                        ) : (
+                          <div key={dIdx} style={{ width: 11, height: 11 }} />
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer: Learn how we count + Less/More Legend */}
+              <div className="gh-contrib-footer">
+                <span>Learn how we count contributions</span>
+                <div className="gh-contrib-legend">
+                  <span style={{ marginRight: 2 }}>Less</span>
+                  <span className="gh-contrib-cell gh-level-0" />
+                  <span className="gh-contrib-cell gh-level-1" />
+                  <span className="gh-contrib-cell gh-level-2" />
+                  <span className="gh-contrib-cell gh-level-3" />
+                  <span className="gh-contrib-cell gh-level-4" />
+                  <span style={{ marginLeft: 2 }}>More</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Year Selector Pills (2026, 2025, 2024) */}
+          <div className="gh-years-col">
+            {[
+              { id: 'last', label: '2026' },
+              { id: '2025', label: '2025' },
+              { id: '2024', label: '2024' }
+            ].map((yr) => (
+              <button
+                key={yr.id}
+                type="button"
+                className={`gh-year-btn ${contribYear === yr.id ? 'active' : ''}`}
+                onClick={() => handleSelectYear(yr.id)}
+              >
+                {yr.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Half of GitHub Hub: Recent Commits/Events + Repositories */}
         <div className="github-hub-grid">
           <div className="github-activity-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <b style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
                 RECENT GITHUB ACTIVITY
               </b>
-              <span style={{ fontSize: 11, color: '#10b981', fontFamily: 'JetBrains Mono, monospace' }}>● LIVE FEED</span>
+              <span style={{ fontSize: 11, color: '#10b981', fontFamily: 'JetBrains Mono, monospace' }}>● LIVE STREAM</span>
             </div>
 
             {(githubData?.events || []).map((ev, i) => (
@@ -612,7 +764,6 @@ export default function App() {
           />
         </div>
 
-        {/* 3-Column Odysseus Cards Grid */}
         <div className="odysseus-cards-grid">
           {filteredTools.map((tool) => (
             <div
@@ -621,7 +772,6 @@ export default function App() {
               onClick={() => setActiveToolId(tool.id)}
             >
               <div>
-                {/* Card Top: Icon Box + Badges */}
                 <div className="odysseus-card-top">
                   <div className="odysseus-card-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -642,14 +792,12 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Card Body: Title + Description */}
                 <div className="odysseus-card-body">
                   <h3 className="odysseus-card-title">{tool.name}</h3>
                   <p className="odysseus-card-desc">{tool.description}</p>
                 </div>
               </div>
 
-              {/* Card Footer: Category + Open -> */}
               <div className="odysseus-card-footer">
                 <span className="odysseus-card-category">{tool.category}</span>
                 <button

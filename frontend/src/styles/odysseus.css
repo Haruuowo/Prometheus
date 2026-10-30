@@ -692,7 +692,297 @@ button, input, textarea, select {
   padding: 22px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+/* Project Telemetry Stat Strip */
+.project-telemetry-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
+}
+
+@media (max-width: 960px) {
+  .project-telemetry-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .project-telemetry-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.project-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-stat-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.project-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.project-stat-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Upgraded To-Do Board Styles */
+.todo-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #0e1014;
+  border: 1px solid #1e222b;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.todo-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.todo-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #1a1e26;
+  overflow: hidden;
+}
+
+.todo-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f59e0b, #10b981);
+  transition: width 0.25s ease;
+}
+
+.todo-tag-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.todo-tag-chip {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid #262b36;
+  background: #0e1014;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.todo-tag-chip:hover {
+  border-color: #384052;
+  color: #ffffff;
+}
+
+.todo-tag-chip.active.tag-FEATURE {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.todo-tag-chip.active.tag-BUG {
+  background: rgba(244, 63, 94, 0.14);
+  border-color: #f43f5e;
+  color: #f43f5e;
+}
+
+.todo-tag-chip.active.tag-DEPLOY {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.todo-tag-chip.active.tag-REFACTOR {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: #a855f7;
+  color: #c084fc;
+}
+
+.todo-tag-chip.active.tag-DOCS {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.todo-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 410px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.todo-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: #0e1014;
+  border: 1px solid #1e232d;
+  border-left: 3px solid #f59e0b;
+  transition: all 0.16s ease;
+}
+
+.todo-card-item:hover {
+  background: #12151c;
+  border-color: #2c3342;
+  transform: translateX(2px);
+}
+
+.todo-card-item.accent-FEATURE { border-left-color: #38bdf8; }
+.todo-card-item.accent-BUG { border-left-color: #f43f5e; }
+.todo-card-item.accent-DEPLOY { border-left-color: #f59e0b; }
+.todo-card-item.accent-REFACTOR { border-left-color: #a855f7; }
+.todo-card-item.accent-DOCS { border-left-color: #10b981; }
+
+.todo-card-item.completed {
+  opacity: 0.55;
+  border-left-color: #10b981;
+}
+
+.todo-custom-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid #374151;
+  background: #151922;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.todo-custom-check:hover {
+  border-color: var(--accent-gold);
+}
+
+.todo-custom-check.checked {
+  background: #10b981;
+  border-color: #10b981;
+  color: #0b0c0e;
+}
+
+.todo-tag-badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.todo-tag-badge.badge-FEATURE {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.todo-tag-badge.badge-BUG {
+  background: rgba(244, 63, 94, 0.14);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.todo-tag-badge.badge-DEPLOY {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.todo-tag-badge.badge-REFACTOR {
+  background: rgba(168, 85, 247, 0.14);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.todo-tag-badge.badge-DOCS {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Git Pushes, Commits & Pulls Timeline */
+.git-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.git-timeline-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #0e1014;
+  border: 1px solid #1e232d;
+  transition: border-color 0.15s ease;
+}
+
+.git-timeline-item:hover {
+  border-color: #2f3747;
+}
+
+.git-sha-pill {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #161b24;
+  border: 1px solid #283040;
+  color: #38bdf8;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.git-sha-pill:hover {
+  border-color: #38bdf8;
 }
 
 /* GitHub Student Activity Dashboard */

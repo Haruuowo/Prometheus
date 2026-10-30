@@ -269,14 +269,36 @@ export default function App() {
 
   const [newTodoText, setNewTodoText] = useState('');
   const [newTodoTag, setNewTodoTag] = useState('FEATURE');
-  const [newImpLabel, setNewImpLabel] = useState('');
-  const [newImpValue, setNewImpValue] = useState('');
+  const [todoFilter, setTodoFilter] = useState('ALL');
   const [projectSyncStatus, setProjectSyncStatus] = useState('');
+  const [repoActivity, setRepoActivity] = useState(null);
+  const [repoActivityLoading, setRepoActivityLoading] = useState(false);
 
   // Active Tool Modal (for the 9 CS Student tools)
   const [activeToolId, setActiveToolId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchRepoActivity = async (owner, repoName) => {
+    if (!repoName) return;
+    setRepoActivityLoading(true);
+    try {
+      const res = await fetch(
+        `/api/github/repo-activity?user=${encodeURIComponent(owner || githubUsername || 'Haruuowo')}&repo=${encodeURIComponent(repoName)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setRepoActivity(data);
+      }
+    } catch (e) {}
+    setRepoActivityLoading(false);
+  };
+
+  useEffect(() => {
+    if (selectedProject?.name) {
+      fetchRepoActivity(githubUsername, selectedProject.name);
+    }
+  }, [selectedProject?.name, githubUsername]);
 
   const saveDeadlines = (nextList) => {
     setDeadlines(nextList);
@@ -442,34 +464,6 @@ export default function App() {
     const nextStore = {
       ...projectStore,
       [repoName]: { ...current, todos: updatedTodos }
-    };
-    saveProjectStore(nextStore);
-  };
-
-  const handleAddImportantItem = (e) => {
-    e.preventDefault();
-    if (!selectedProject || !newImpLabel.trim() || !newImpValue.trim()) return;
-    const rName = selectedProject.name;
-    const current = getRepoData(rName);
-    const updatedImp = [
-      ...current.important,
-      { id: `imp_${Date.now()}`, label: newImpLabel.trim(), value: newImpValue.trim() }
-    ];
-    const nextStore = {
-      ...projectStore,
-      [rName]: { ...current, important: updatedImp }
-    };
-    saveProjectStore(nextStore);
-    setNewImpLabel('');
-    setNewImpValue('');
-  };
-
-  const handleDeleteImportantItem = (repoName, impId) => {
-    const current = getRepoData(repoName);
-    const updatedImp = current.important.filter((item) => item.id !== impId);
-    const nextStore = {
-      ...projectStore,
-      [repoName]: { ...current, important: updatedImp }
     };
     saveProjectStore(nextStore);
   };
@@ -1602,12 +1596,25 @@ export default function App() {
       {activeTab === 'PROJECT' && selectedProject && (() => {
         const repoData = getRepoData(selectedProject.name);
         const todos = repoData.todos || [];
-        const importantList = repoData.important || [];
         const notes = repoData.notes || '';
+        const pendingCount = todos.filter((t) => !t.done).length;
+        const doneCount = todos.filter((t) => t.done).length;
+        const progressPct = todos.length > 0 ? Math.round((doneCount / todos.length) * 100) : 0;
+
+        const visibleTodos = todos.filter((t) => {
+          if (todoFilter === 'PENDING') return !t.done;
+          if (todoFilter === 'DONE') return t.done;
+          return true;
+        });
+
+        const commitsList = repoActivity?.commits || [];
+        const pullsList = repoActivity?.pulls || [];
+        const gitFeed = repoActivity?.activity || [];
+        const latestSha = commitsList[0]?.sha || 'main';
 
         return (
           <section className="project-workspace-view">
-            {/* Project Top Banner */}
+            {/* 1. Project Top Banner */}
             <div className="project-banner-card">
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -1623,11 +1630,11 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <h2 style={{ fontSize: 24, fontWeight: 800, color: '#ffffff', marginTop: 6 }}>
+                <h2 style={{ fontSize: 26, fontWeight: 800, color: '#ffffff', marginTop: 6 }}>
                   {selectedProject.name}
                 </h2>
                 <p style={{ fontSize: 13.5, color: '#9ca3af', marginTop: 3 }}>
-                  {selectedProject.description || 'Dedicated project workspace for tracking tasks, important links, and architecture notes.'}
+                  {selectedProject.description || 'Dedicated project workspace for tracking tasks, GitHub pushes & pulls, and architecture notes.'}
                 </p>
               </div>
 
@@ -1659,157 +1666,347 @@ export default function App() {
               </div>
             </div>
 
-            {/* Project Grid: Left = To-Do List | Right = Important Project Info & Quick Links */}
+            {/* 2. Project Telemetry & GitHub Activity Summary Strip */}
+            <div className="project-telemetry-strip">
+              <div className="project-stat-card">
+                <div className="project-stat-label">
+                  <span>TASK COMPLETION</span>
+                  <span style={{ color: '#10b981' }}>{progressPct}%</span>
+                </div>
+                <div className="project-stat-value">
+                  {doneCount} / {todos.length} Done
+                </div>
+                <div className="todo-progress-track">
+                  <div className="todo-progress-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+              </div>
+
+              <div className="project-stat-card">
+                <div className="project-stat-label">
+                  <span>RECENT PUSHES</span>
+                  <span style={{ color: '#38bdf8' }}>SHA {latestSha}</span>
+                </div>
+                <div className="project-stat-value">
+                  {commitsList.length} Commits
+                </div>
+                <div className="project-stat-sub">
+                  Latest push on branch <b style={{ color: '#e5e7eb' }}>{selectedProject.default_branch || 'main'}</b>
+                </div>
+              </div>
+
+              <div className="project-stat-card">
+                <div className="project-stat-label">
+                  <span>PULL REQUESTS</span>
+                  <a
+                    href={`https://github.com/${githubUsername}/${selectedProject.name}/pulls`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: '#f59e0b', textDecoration: 'none' }}
+                  >
+                    View PRs &#8599;
+                  </a>
+                </div>
+                <div className="project-stat-value">
+                  {pullsList.length} Pulls
+                </div>
+                <div className="project-stat-sub">
+                  {pullsList.length > 0
+                    ? `${pullsList.filter((p) => p.state === 'OPEN').length} Open • ${pullsList.filter((p) => p.state !== 'OPEN').length} Closed/Merged`
+                    : 'No open pull requests'}
+                </div>
+              </div>
+
+              <div className="project-stat-card">
+                <div className="project-stat-label">
+                  <span>STACK & BRANCH</span>
+                  <span style={{ color: '#f59e0b' }}>ACTIVE</span>
+                </div>
+                <div className="project-stat-value">
+                  {selectedProject.language || 'Code'}
+                </div>
+                <div className="project-stat-sub">
+                  Default branch: <b style={{ color: '#e5e7eb' }}>{selectedProject.default_branch || 'main'}</b>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Main Two-Column Workspace: Left = Upgraded To-Do Board | Right = Git Pushes/Pulls + Notes */}
             <div className="project-workspace-grid">
-              {/* Left Column: Project To-Do List */}
+              {/* Left Column: Upgraded Project To-Do Board */}
               <div className="project-panel-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                   <div>
-                    <span className="section-label">ACTION ITEMS</span>
-                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
-                      Project To-Do List ({todos.filter((t) => !t.done).length} Pending)
+                    <span className="section-label">ACTION BOARD</span>
+                    <h3 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
+                      Project To-Do List
                     </h3>
+                  </div>
+
+                  {/* Filter Pills: All / Pending / Completed */}
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[
+                      { id: 'ALL', label: `All (${todos.length})` },
+                      { id: 'PENDING', label: `Pending (${pendingCount})` },
+                      { id: 'DONE', label: `Done (${doneCount})` }
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setTodoFilter(f.id)}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: 7,
+                          fontSize: 11,
+                          fontFamily: 'JetBrains Mono, monospace',
+                          border: '1px solid #262b36',
+                          background: todoFilter === f.id ? '#1f2430' : 'transparent',
+                          color: todoFilter === f.id ? '#ffffff' : '#9ca3af',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <form onSubmit={handleAddProjectTodo} style={{ display: 'flex', gap: 8 }}>
-                  <select
-                    value={newTodoTag}
-                    onChange={(e) => setNewTodoTag(e.target.value)}
-                    style={{
-                      padding: '9px 10px',
-                      borderRadius: 9,
-                      border: '1px solid #262b36',
-                      background: '#0e1014',
-                      color: '#f59e0b',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      fontFamily: 'JetBrains Mono, monospace',
-                      outline: 'none'
-                    }}
-                  >
-                    <option value="FEATURE">FEATURE</option>
-                    <option value="BUG FIX">BUG FIX</option>
-                    <option value="REFACTOR">REFACTOR</option>
-                    <option value="DEPLOY">DEPLOY</option>
-                    <option value="DOCS">DOCS</option>
-                  </select>
+                {/* Progress Bar Strip inside To-Do Card */}
+                <div className="todo-progress-wrap">
+                  <div className="todo-progress-top">
+                    <span>{pendingCount} {pendingCount === 1 ? 'task' : 'tasks'} remaining</span>
+                    <span style={{ color: '#10b981', fontWeight: 700 }}>{progressPct}% Complete</span>
+                  </div>
+                  <div className="todo-progress-track">
+                    <div className="todo-progress-fill" style={{ width: `${progressPct}%` }} />
+                  </div>
+                </div>
 
-                  <input
-                    type="text"
-                    className="notion-input"
-                    value={newTodoText}
-                    onChange={(e) => setNewTodoText(e.target.value)}
-                    placeholder={`Add task for ${selectedProject.name}...`}
-                  />
+                {/* Task Creation Form with Interactive Tag Chips */}
+                <form onSubmit={handleAddProjectTodo} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 6, borderBottom: '1px solid #1e232d' }}>
+                  <div className="todo-tag-selector">
+                    <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'JetBrains Mono, monospace', marginRight: 4 }}>
+                      TAG:
+                    </span>
+                    {['FEATURE', 'BUG', 'DEPLOY', 'REFACTOR', 'DOCS'].map((tKey) => (
+                      <button
+                        key={tKey}
+                        type="button"
+                        className={`todo-tag-chip tag-${tKey} ${newTodoTag === tKey ? 'active' : ''}`}
+                        onClick={() => setNewTodoTag(tKey)}
+                      >
+                        {tKey}
+                      </button>
+                    ))}
+                  </div>
 
-                  <button type="submit" className="notion-gold-btn">
-                    + Add
-                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="text"
+                      className="notion-input"
+                      value={newTodoText}
+                      onChange={(e) => setNewTodoText(e.target.value)}
+                      placeholder={`Add a new ${newTodoTag.toLowerCase()} task for ${selectedProject.name}...`}
+                    />
+                    <button type="submit" className="notion-gold-btn">
+                      + Add Task
+                    </button>
+                  </div>
                 </form>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
-                  {todos.length === 0 ? (
-                    <div style={{ padding: 28, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
-                      No tasks added yet for <b>{selectedProject.name}</b>. Add your next feature or bug fix above.
+                {/* Styled Task Cards List */}
+                <div className="todo-card-list">
+                  {visibleTodos.length === 0 ? (
+                    <div style={{ padding: 32, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+                      No tasks in this view. Select a tag above and add your next milestone for <b>{selectedProject.name}</b>.
                     </div>
                   ) : (
-                    todos.map((todo) => (
-                      <div key={todo.id} className="deadline-row" style={{ opacity: todo.done ? 0.55 : 1 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={todo.done}
-                            onChange={() => handleToggleProjectTodo(selectedProject.name, todo.id)}
-                            style={{ width: 16, height: 16, accentColor: '#f59e0b', cursor: 'pointer' }}
-                          />
-                          <span style={{
-                            fontSize: 9.5,
-                            fontFamily: 'JetBrains Mono, monospace',
-                            fontWeight: 800,
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            background: 'rgba(245, 158, 11, 0.14)',
-                            color: '#f59e0b',
-                            border: '1px solid rgba(245, 158, 11, 0.35)'
-                          }}>
-                            {todo.tag || 'TASK'}
-                          </span>
-                          <span style={{
-                            fontSize: 13,
-                            color: '#f3f4f6',
-                            textDecoration: todo.done ? 'line-through' : 'none'
-                          }}>
-                            {todo.text}
-                          </span>
-                        </label>
+                    visibleTodos.map((todo) => {
+                      const rawTag = (todo.tag || 'FEATURE').toUpperCase();
+                      const cleanTag = rawTag.includes('BUG') ? 'BUG' : rawTag;
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button
-                            type="button"
-                            className="calendar-nav-btn"
-                            onClick={() => handlePinProjectTodoToCalendar(selectedProject.name, todo)}
-                            style={{ padding: '4px 8px', fontSize: 11 }}
+                      return (
+                        <div
+                          key={todo.id}
+                          className={`todo-card-item accent-${cleanTag} ${todo.done ? 'completed' : ''}`}
+                        >
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, cursor: 'pointer', minWidth: 0 }}
+                            onClick={() => handleToggleProjectTodo(selectedProject.name, todo.id)}
                           >
-                            Pin to Calendar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteProjectTodo(selectedProject.name, todo.id)}
-                            style={{
-                              padding: '4px 8px',
-                              border: 'none',
-                              background: 'transparent',
-                              color: '#6b7280',
-                              fontSize: 15,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            &times;
-                          </button>
+                            <div className={`todo-custom-check ${todo.done ? 'checked' : ''}`}>
+                              {todo.done && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+
+                            <span className={`todo-tag-badge badge-${cleanTag}`}>
+                              {todo.tag || 'FEATURE'}
+                            </span>
+
+                            <span style={{
+                              fontSize: 13.5,
+                              fontWeight: 600,
+                              color: todo.done ? '#6b7280' : '#f3f4f6',
+                              textDecoration: todo.done ? 'line-through' : 'none',
+                              lineHeight: 1.4
+                            }}>
+                              {todo.text}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              className="calendar-nav-btn"
+                              onClick={() => handlePinProjectTodoToCalendar(selectedProject.name, todo)}
+                              style={{ padding: '5px 10px', fontSize: 11 }}
+                              title={`Pin task to Calendar (${selectedDate})`}
+                            >
+                              Schedule
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProjectTodo(selectedProject.name, todo.id)}
+                              style={{
+                                padding: '4px 8px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#6b7280',
+                                fontSize: 16,
+                                cursor: 'pointer'
+                              }}
+                              title="Remove task"
+                            >
+                              &times;
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
 
-              {/* Right Column: Architecture & Scratchpad Notes */}
-              <div className="project-panel-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                  <div>
-                    <span className="section-label">DOCUMENTATION & SCRATCHPAD</span>
-                    <h3 style={{ fontSize: 17, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
-                      Project Notes & Architecture
-                    </h3>
+              {/* Right Column: Live Git Pushes, Commits & Pull Requests + Architecture Notes */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Top Right Card: Git Pushes, Commits & Pull Requests */}
+                <div className="project-panel-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <span className="section-label">GITHUB TELEMETRY // PUSHES & PULL REQUESTS</span>
+                      <h3 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
+                        Recent Commits & Pull Activity
+                      </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="calendar-nav-btn"
+                        onClick={() => fetchRepoActivity(githubUsername, selectedProject.name)}
+                        disabled={repoActivityLoading}
+                      >
+                        {repoActivityLoading ? 'Syncing...' : 'Refresh Activity'}
+                      </button>
+                      <a
+                        href={`https://github.com/${githubUsername}/${selectedProject.name}/commits`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="calendar-nav-btn"
+                        style={{ textDecoration: 'none', color: '#38bdf8' }}
+                      >
+                        All Commits &#8599;
+                      </a>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      className="calendar-nav-btn"
-                      onClick={() => syncProjectToSecondBrain(selectedProject.name, todos, notes)}
-                      style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
-                    >
-                      Save Notes
-                    </button>
-                    <button
-                      type="button"
-                      className="calendar-nav-btn"
-                      onClick={() => setActiveToolId('readme_builder')}
-                    >
-                      Generate README.md
-                    </button>
+                  <div className="git-timeline-list">
+                    {gitFeed.map((item) => {
+                      const isPR = item.type?.startsWith('PR');
+                      return (
+                        <div key={item.id} className="git-timeline-item">
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+                            <span
+                              style={{
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fontSize: 9.5,
+                                fontWeight: 800,
+                                padding: '3px 7px',
+                                borderRadius: 5,
+                                background: isPR ? 'rgba(168, 85, 247, 0.16)' : 'rgba(16, 185, 129, 0.15)',
+                                color: isPR ? '#d8b4fe' : '#34d399',
+                                border: isPR ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)',
+                                flexShrink: 0,
+                                marginTop: 1
+                              }}
+                            >
+                              {item.type}
+                            </span>
+
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#f3f4f6', lineHeight: 1.38 }}>
+                                {item.title}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3, fontFamily: 'JetBrains Mono, monospace' }}>
+                                {item.subtitle} • {item.date}
+                              </div>
+                            </div>
+                          </div>
+
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="git-sha-pill"
+                            title="View on GitHub"
+                          >
+                            {item.sha} &#8599;
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <textarea
-                  className="notion-page-textarea"
-                  style={{ minHeight: 340 }}
-                  value={notes}
-                  onChange={(e) => handleChangeProjectNotes(selectedProject.name, e.target.value)}
-                  placeholder={`Write architecture notes, database schemas, API routes, or implementation plans for ${selectedProject.name}...`}
-                />
+                {/* Bottom Right Card: Project Notes & Architecture */}
+                <div className="project-panel-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <span className="section-label">DOCUMENTATION & SCRATCHPAD</span>
+                      <h3 style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
+                        Project Notes & Architecture
+                      </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="calendar-nav-btn"
+                        onClick={() => syncProjectToSecondBrain(selectedProject.name, todos, notes)}
+                        style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
+                      >
+                        Save Notes
+                      </button>
+                      <button
+                        type="button"
+                        className="calendar-nav-btn"
+                        onClick={() => setActiveToolId('readme_builder')}
+                      >
+                        Generate README.md
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    className="notion-page-textarea"
+                    style={{ minHeight: 220 }}
+                    value={notes}
+                    onChange={(e) => handleChangeProjectNotes(selectedProject.name, e.target.value)}
+                    placeholder={`Write architecture notes, database schemas, API routes, or implementation plans for ${selectedProject.name}...`}
+                  />
+                </div>
               </div>
             </div>
           </section>

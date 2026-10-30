@@ -477,6 +477,12 @@ async def api_github_overview(user: str = Query(default="Haruuowo"), year: str =
     return data
 
 
+@app.get("/api/github/repo-activity")
+async def api_github_repo_activity(user: str = Query(default="Haruuowo"), repo: str = Query(default="Prometheus")):
+    data = github_tool.get_repo_activity(user, repo)
+    return data
+
+
 @app.post("/api/github/connect-token")
 async def connect_github_token(req: TokenConnectRequest):
     github_tool.set_runtime_github_token(req.access_token)

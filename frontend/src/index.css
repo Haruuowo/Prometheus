@@ -1,4 +1,146 @@
-/* Clean base styles */
-*, *::before, *::after {
-  box-sizing: border-box;
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background-color: #f4efe6;
+    color: #18181b;
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Neo-Brutalist Utility Classes (Inspired by Pablo UI Reference) */
+.neo-card {
+  background-color: #ffffff;
+  border: 2px solid #18181b;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0px #18181b;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.neo-card-cream {
+  background-color: #faf6ee;
+  border: 2px solid #18181b;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-card-sky {
+  background-color: #aee2f5;
+  border: 2px solid #18181b;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-card-mint {
+  background-color: #a3ebb1;
+  border: 2px solid #18181b;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-card-butter {
+  background-color: #fae094;
+  border: 2px solid #18181b;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-card-pink {
+  background-color: #f4b6c2;
+  border: 2px solid #18181b;
+  border-radius: 22px;
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-card-interactive:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #18181b;
+}
+
+.neo-btn-butter {
+  background-color: #f8de8c;
+  color: #18181b;
+  border: 2px solid #18181b;
+  border-radius: 14px;
+  font-weight: 800;
+  box-shadow: 3px 3px 0px #18181b;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+  cursor: pointer;
+}
+
+.neo-btn-butter:hover {
+  background-color: #f5d36b;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-btn-butter:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #18181b;
+}
+
+.neo-btn-white {
+  background-color: #ffffff;
+  color: #18181b;
+  border: 2px solid #18181b;
+  border-radius: 14px;
+  font-weight: 700;
+  box-shadow: 3px 3px 0px #18181b;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+  cursor: pointer;
+}
+
+.neo-btn-white:hover {
+  background-color: #faf6ee;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #18181b;
+}
+
+.neo-input {
+  background-color: #ffffff;
+  color: #18181b;
+  border: 2px solid #18181b;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 600;
+  outline: none;
+  transition: box-shadow 0.12s ease;
+}
+
+.neo-input:focus {
+  box-shadow: 3px 3px 0px #18181b;
+}
+
+.neo-badge-seal {
+  border: 2px dashed #18181b;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #18181b;
+  font-weight: 800;
+}
+
+.neo-outline-title {
+  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #ffffff;
+  -webkit-text-stroke: 2px #18181b;
+  text-shadow: 3px 3px 0px #18181b;
+  letter-spacing: -0.02em;
+}
+
+.neo-coral-title {
+  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #e0533c;
+  -webkit-text-stroke: 2px #18181b;
+  text-shadow: 3px 3px 0px #18181b;
+  letter-spacing: -0.02em;
 }

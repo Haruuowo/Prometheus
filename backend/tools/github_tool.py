@@ -23,8 +23,11 @@ def _get_headers() -> Dict[str, str]:
     return headers
 
 
-def get_user_contributions(username: str = "Haruuowo", year: str = "last") -> Dict[str, Any]:
+def get_user_contributions(username: str = "", year: str = "last") -> Dict[str, Any]:
     """Fetches GitHub contribution calendar heatmap data (365+ days, levels 0-4) directly from GitHub or API."""
+    username = (username or "").strip()
+    if not username:
+        return {"total": 0, "year": year, "days": []}
     # 1. Try direct GitHub contributions endpoint first (fast & reliable)
     try:
         gh_url = f"https://github.com/users/{urllib.parse.quote(username)}/contributions"
@@ -78,8 +81,26 @@ def get_user_contributions(username: str = "Haruuowo", year: str = "last") -> Di
         }
 
 
-def get_user_overview(username: str = "Haruuowo", year: str = "last") -> Dict[str, Any]:
+def get_user_overview(username: str = "", year: str = "last") -> Dict[str, Any]:
     """Fetches public user stats, recent repositories, language breakdown, live activity feed, and contribution graph."""
+    username = (username or "").strip()
+    if not username:
+        return {
+            "ok": False,
+            "username": "",
+            "name": "",
+            "avatar_url": "",
+            "html_url": "",
+            "public_repos": 0,
+            "followers": 0,
+            "following": 0,
+            "total_stars": 0,
+            "bio": "",
+            "top_languages": [],
+            "repos": [],
+            "events": [],
+            "contributions": {"total": 0, "year": year, "days": []}
+        }
     contrib_data = get_user_contributions(username, year)
     try:
         url = f"https://api.github.com/users/{urllib.parse.quote(username)}"
@@ -252,8 +273,10 @@ def get_user_overview(username: str = "Haruuowo", year: str = "last") -> Dict[st
 
 def get_repo_activity(username: str, repo_name: str) -> Dict[str, Any]:
     """Fetch recent commits (pushes), pull requests, and activity for a specific repository."""
-    username = (username or "Haruuowo").strip()
-    repo_name = (repo_name or "Prometheus").strip()
+    username = (username or "").strip()
+    repo_name = (repo_name or "").strip()
+    if not username or not repo_name:
+        return {"ok": False, "username": username, "repo": repo_name, "commits": [], "pulls": [], "activity": []}
     commits: List[Dict[str, Any]] = []
     pulls: List[Dict[str, Any]] = []
     activity: List[Dict[str, Any]] = []

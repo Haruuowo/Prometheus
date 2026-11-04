@@ -17,7 +17,7 @@ export default function AuthModal({
   onSignOutGithub,
   onClose
 }) {
-  const [ghHandle, setGhHandle] = useState(githubUsername || 'Haruuowo');
+  const [ghHandle, setGhHandle] = useState(githubUsername || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -50,7 +50,6 @@ export default function AuthModal({
     return false;
   };
 
-  // 1. Direct GitHub Username Sync
   const handleDirectGithubSignIn = async (e) => {
     e.preventDefault();
     if (!ghHandle.trim()) return;
@@ -66,7 +65,6 @@ export default function AuthModal({
     }
   };
 
-  // 2. Firebase GitHub OAuth Popup Sign-In
   const handleGithubOAuth = async () => {
     if (!isFirebaseConfigured || !auth || !githubProvider) {
       if (ghHandle.trim()) {
@@ -99,7 +97,7 @@ export default function AuthModal({
           } catch (linkErr) {}
         }
 
-        const synced = await syncWithGithubToken(token, ghHandle.trim() || 'Haruuowo');
+        const synced = await syncWithGithubToken(token, ghHandle.trim());
         if (synced) {
           onClose();
           return;
@@ -132,93 +130,68 @@ export default function AuthModal({
 
   return (
     <div
-      className="tool-modal-backdrop"
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: 440,
-          background: '#131519',
-          border: '1px solid #2b303c',
-          borderRadius: 18,
-          padding: 26,
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 18
-        }}
+        className="w-full max-w-md neo-card-cream p-7 flex flex-col gap-5 shadow-[8px_8px_0px_#18181b]"
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* Top Stamp + Outlined Hero Typography (Inspired by Left Screen of Pablo UI) */}
+        <div className="flex items-start justify-between">
           <div>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10.5, color: '#f59e0b', fontWeight: 800 }}>
-              PROMETHEUS // GITHUB AUTH
-            </span>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: '#ffffff', marginTop: 4 }}>
-              {isSignedIn ? 'Connected GitHub Account' : 'Sign in with GitHub'}
-            </h2>
-            <p style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 4 }}>
-              Sync your repositories, contribution graph, deadlines, and project notes.
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f8de8c] border-2 border-dashed border-zinc-900 text-[10px] font-mono font-extrabold text-zinc-900">
+              PROMETHEUS // EST. 2026
+            </div>
+            <div className="mt-3 leading-none">
+              <div className="text-2xl neo-outline-title">SYNC YOUR</div>
+              <div className="text-2xl neo-outline-title mt-0.5">WORKSPACE</div>
+              <div className="text-2xl mt-0.5">
+                <span className="neo-outline-title">WITH </span>
+                <span className="neo-coral-title">GITHUB</span>
+              </div>
+            </div>
+            <p className="text-xs font-semibold text-zinc-600 mt-3 leading-relaxed">
+              Welcome to your custom student planner! Made to organize your classes, deadlines, and GitHub repositories in one place.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: 18, cursor: 'pointer' }}
+            className="text-zinc-600 hover:text-zinc-900 text-xl font-extrabold px-2"
           >
             &times;
           </button>
         </div>
 
         {isSignedIn && (
-          <div style={{
-            padding: 16,
-            borderRadius: 12,
-            background: '#0e1014',
-            border: '1px solid #232730',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14
-          }}>
+          <div className="p-3.5 rounded-2xl bg-white border-2 border-zinc-900 shadow-[3px_3px_0px_#18181b] flex items-center gap-3.5">
             {displayAvatar && (
               <img
                 src={displayAvatar}
                 alt={displayName}
-                style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid #f59e0b' }}
+                className="w-12 h-12 rounded-full border-2 border-zinc-900 object-cover"
               />
             )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#ffffff' }}>{displayName}</div>
-              <div style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'JetBrains Mono, monospace' }}>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-extrabold text-zinc-900 truncate">{displayName}</div>
+              <div className="text-xs font-mono font-bold text-[#e0533c]">
                 @{githubData?.username || githubUsername}
               </div>
-              <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 2 }}>
-                {githubData?.public_repos ?? 0} Public Repos • {githubData?.contributions?.total ?? 265} Contributions
+              <div className="text-[11px] font-semibold text-zinc-600 mt-0.5">
+                {githubData?.public_repos ?? 0} Public Repos •{' '}
+                {githubData?.contributions?.total ?? 0} Contributions
               </div>
             </div>
           </div>
         )}
 
+        {/* Stacked Butter & Cream Buttons (Exact Pablo Left Screen Style) */}
         <button
           type="button"
           onClick={handleGithubOAuth}
           disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: 10,
-            border: '1px solid #30363d',
-            background: '#24292f',
-            color: '#ffffff',
-            fontWeight: 700,
-            fontSize: 13.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            cursor: 'pointer'
-          }}
+          className="w-full neo-btn-butter py-3.5 px-4 text-sm flex items-center justify-center gap-2.5"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
@@ -226,79 +199,48 @@ export default function AuthModal({
           {loading ? 'Connecting GitHub...' : 'Continue with GitHub OAuth'}
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6b7280', fontSize: 11 }}>
-          <div style={{ flex: 1, height: 1, background: '#232730' }} />
-          <span>OR SYNC BY GITHUB USERNAME</span>
-          <div style={{ flex: 1, height: 1, background: '#232730' }} />
-        </div>
-
-        <form onSubmit={handleDirectGithubSignIn} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={handleDirectGithubSignIn} className="flex gap-2">
           <input
             type="text"
             value={ghHandle}
             onChange={(e) => setGhHandle(e.target.value)}
-            placeholder="e.g. Haruuowo"
-            style={{
-              flex: 1,
-              padding: '10px 14px',
-              borderRadius: 10,
-              border: '1px solid #2b303c',
-              background: '#0e1014',
-              color: '#ffffff',
-              fontSize: 13.5,
-              outline: 'none'
-            }}
+            placeholder="Or enter GitHub username..."
+            className="flex-1 neo-input text-sm"
           />
           <button
             type="submit"
             disabled={loading}
-            style={{
-              padding: '0 18px',
-              borderRadius: 10,
-              border: 'none',
-              background: '#f59e0b',
-              color: '#0b0c0e',
-              fontWeight: 800,
-              fontSize: 13,
-              cursor: 'pointer'
-            }}
+            className="neo-btn-white px-5 text-sm font-extrabold"
           >
             Sync
           </button>
         </form>
 
         {error && (
-          <div style={{
-            padding: '10px 12px',
-            borderRadius: 8,
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            color: '#f87171',
-            fontSize: 12,
-            lineHeight: 1.45
-          }}>
+          <div className="p-3 rounded-xl bg-[#f4b6c2] border-2 border-zinc-900 text-zinc-900 text-xs font-bold">
             {error}
           </div>
         )}
 
-        {isSignedIn && (
+        <div className="flex items-center justify-between pt-1">
           <button
             type="button"
-            onClick={handleFullSignOut}
-            style={{
-              padding: '9px 14px',
-              borderRadius: 8,
-              border: '1px solid rgba(239, 68, 68, 0.35)',
-              background: 'transparent',
-              color: '#f87171',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
+            onClick={onClose}
+            className="text-xs font-extrabold text-zinc-700 underline hover:text-zinc-900"
           >
-            Disconnect / Sign Out
+            Continue as guest
           </button>
-        )}
+
+          {isSignedIn && (
+            <button
+              type="button"
+              onClick={handleFullSignOut}
+              className="text-xs font-extrabold text-[#e0533c] underline"
+            >
+              Disconnect account
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

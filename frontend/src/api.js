@@ -71,6 +71,49 @@ export const api = {
     return { ok: true, reminder: { id: `rem_${Date.now()}`, title, time, status: "pending" } };
   },
 
+  // OJT Practicum Hub
+  async getOjtRequirements() {
+    try {
+      const res = await fetch('/api/ojt/requirements');
+      if (res.ok) return await res.json();
+    } catch (e) {}
+    return {
+      checklist: [
+        { id: 'req_1', title: 'Online Orientation Attendance Form', detail: 'Submitted via Google Forms', paper_size: 'Online Form', required: true },
+        { id: 'req_2', title: 'Endorsement Letter', detail: 'Signed first by OJT coordinator', paper_size: 'Letter-sized paper only', required: true },
+        { id: 'req_3', title: 'Waiver', detail: 'Signed by student and acknowledged by university', paper_size: 'Letter-sized paper only', required: true },
+        { id: 'req_4', title: 'Practicum Training Agreement', detail: 'Tripartite agreement', paper_size: 'Letter-sized paper only', required: true },
+        { id: 'req_5', title: 'Parental Consent', detail: 'Signed with valid ID attached', paper_size: 'Letter-sized paper only', required: true },
+        { id: 'req_6', title: 'Acceptance Letter', detail: 'From host company', paper_size: 'Letter-sized paper only', required: true },
+      ],
+      instructions: 'All printed forms shall be in letter-sized paper only. Not long, not A4.',
+      total_weeks: 16,
+      default_target_hours: 300
+    };
+  },
+
+  async generateOjtTasks({ role = 'Software Engineer Intern', techStack = '', focusTopic = '', daysCount = 5 }) {
+    try {
+      const res = await fetch('/api/ojt/generate-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, tech_stack: techStack, focus_topic: focusTopic, days_count: daysCount })
+      });
+      if (res.ok) return await res.json();
+    } catch (e) {}
+    return { ok: false, generated_days: [] };
+  },
+
+  async exportOjtDocx(payload) {
+    const res = await fetch('/api/ojt/export-docx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Failed to export DOCX');
+    return await res.blob();
+  },
+
   // Summarizer
   async summarizeText(text, headers = {}) {
     try {
